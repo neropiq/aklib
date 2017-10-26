@@ -352,9 +352,12 @@ func TestTX4(t *testing.T) {
 		t.Error(err)
 	}
 	tx.Nonce = make([]byte, 32)
+	t.Log(tx.Hash())
 	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
+	t.Log(tx.Nonce)
+	t.Log(tx.Hash())
 	if err := tx.Check(debugConfig); err != nil {
 		t.Error(err)
 	}
@@ -362,7 +365,7 @@ func TestTX4(t *testing.T) {
 }
 
 func BenchmarkGeneralPoW(b *testing.B) {
-	tx.Difficulty = 30
+	tx.Difficulty = 28
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		for i := range tx.Nonce {
@@ -382,7 +385,7 @@ func BenchmarkGeneralPoW(b *testing.B) {
 }
 
 func BenchmarkPoW(b *testing.B) {
-	tx.Difficulty = 30
+	tx.Difficulty = 28
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		for i := range tx.Nonce {

@@ -180,7 +180,7 @@ func (tx *Transaction) Check(cfg *aklib.Config) error {
 			return fmt.Errorf("tx hash size at previous tx %d must be 32 bytes", n)
 		}
 	}
-	if tx.Difficulty > cfg.Difficulty {
+	if tx.Difficulty < cfg.Difficulty {
 		return fmt.Errorf("difficulty must be %d", cfg.Difficulty)
 	}
 	if tx.LockTime != 0 && time.Unix(int64(tx.LockTime), 0).After(time.Now()) {

@@ -24,8 +24,6 @@ package tx
 
 import (
 	"errors"
-	"runtime"
-	"sync"
 
 	pow64 "github.com/AidosKuneen/aklib/tx/internal/pow_amd64"
 )
@@ -35,32 +33,10 @@ func (tx *Transaction) PoW() error {
 	if tx.Nonce == nil || len(tx.Nonce) != 32 {
 		tx.Nonce = make([]byte, 32)
 	}
-	var wg sync.WaitGroup
-	var nonce []byte
-	var mutex sync.RWMutex
-	for j := 0; j < runtime.NumCPU(); j++ {
-		wg.Add(1)
-		go func(j int) {
-			defer wg.Done()
-			tx2 := tx.Clone()
-			add(tx2.Nonce, j)
-			b := tx2.bytesForPoW()
-			var n []byte
-			mutex.RLock()
-			n = nonce
-			mutex.RUnlock()
-			if pow64.PoW(b, tx2.Difficulty) {
-				mutex.Lock()
-				nonce = b[nonceLocation:]
-				mutex.Unlock()
-				return
-			}
-		}(j)
-	}
-	wg.Wait()
-	if nonce == nil {
+	b := tx.bytesForPoW()
+	if !pow64.PoW(b, tx.Difficulty) {
 		return errors.New("cannot find PoW solution")
 	}
-	copy(tx.Nonce, nonce)
+	copy(tx.Nonce, b[nonceLocation:])
 	return nil
 }

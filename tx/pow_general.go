@@ -22,6 +22,7 @@ package tx
 
 import (
 	"errors"
+	"fmt"
 	"runtime"
 	"sync"
 
@@ -66,6 +67,7 @@ func (tx *Transaction) generalPoW() error {
 					mutex.Lock()
 					nonce = b[nonceLocation:]
 					mutex.Unlock()
+					fmt.Println("a", j)
 					return
 				}
 				for i := 0; i < 32; i++ {
@@ -75,6 +77,7 @@ func (tx *Transaction) generalPoW() error {
 					}
 				}
 			}
+			fmt.Println("b", j)
 		}(j)
 	}
 	wg.Wait()
