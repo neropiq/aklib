@@ -6,6 +6,8 @@ aklib : [![GoDoc](https://godoc.org/github.com/AidosKuneen/aklib?status.svg)](ht
 address : [![GoDoc](https://godoc.org/github.com/AidosKuneen/aklib/address?status.svg)](https://godoc.org/github.com/AidosKuneen/aklib/address)
 
 
+tx : [![GoDoc](https://godoc.org/github.com/AidosKuneen/aklib/tx?status.svg)](https://godoc.org/github.com/AidosKuneen/aklib/tx)
+
 # aklib 
 
 ## Overview
