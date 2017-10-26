@@ -15,8 +15,8 @@ tx : [![GoDoc](https://godoc.org/github.com/AidosKuneen/aklib/tx?status.svg)](ht
 This  library is for managing AidosKuneen features including
 
 * Address
-* Transaction  (not yet)
-* Proof of Work (in C) (not yet)
+* Transaction  
+* Proof of Work (in go and C)
 * API call (not yet)
 * Transfer (not yet)
 
@@ -36,16 +36,18 @@ This requires
 ## Example
 (This example omits error handlings for simplicity.)
 
+### address
+
 ```go
-	import "github.com/AidosKuneen/aklib"
+	import "github.com/AidosKuneen/aklib/address"
 	
 	seed := GenerateSeed()
-	a := New(10, seed, net)
+	a := New(10, seed, MainConfig)
 	s58 := a.Seed58()
-	aa, err := NewFrom58(10, s58, net)
+	aa, err := NewFrom58(10, s58, MainConfig)
 
 	pk58 := a.PK58()
-	pk, err := FromPK58(pk58, net)
+	pk, err := FromPK58(pk58, MainConfig)
 
 	msg := []byte("This is a test for XMSS.")
 	sig := aa.Sign(msg)	
@@ -57,6 +59,21 @@ This requires
 
 	c := Address{}
 	err := c.UnmarshalJSON(b)
+```
+### transaction
+```go
+	import "github.com/AidosKuneen/aklib/tx"
+
+	tx:=tx.New()
+	if err := tx.Check(MainConfig); err == nil {
+	}
+	if err := tx.CheckAll(GetTxFunction, MainConfig); err == nil {
+	}
+	if err := tx.PoW(); err != nil {
+	}
+	h = tx.Hash()
+	b := tx.Body.Pack()
+	s := tx.Signatures.Pack()
 ```
 
 
