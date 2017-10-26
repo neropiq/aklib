@@ -22,11 +22,11 @@ This  library is for managing AidosKuneen features including
 
 ## Requirements
 
-This requires
-
 * git
 * go 1.9+
+* yasm
 
+are required to compile this.
 
 ## Installation
 
