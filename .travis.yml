@@ -3,6 +3,11 @@ language: go
 go:
   - 1.9
 
+addons:
+  apt:
+    packages:
+    - yasm
+
 before_install:
 - go get -u github.com/axw/gocov/gocov
 - go get -u github.com/alecthomas/gometalinter
