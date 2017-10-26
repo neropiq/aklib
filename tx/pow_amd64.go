@@ -1,3 +1,5 @@
+// +build amd64
+
 // Copyright (c) 2017 Aidos Developer
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,36 +20,47 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package aklib
+package tx
 
-//Config is settings for various parameters.
-type Config struct {
-	Net        int
-	Difficulty byte
-	PrefixPriv []byte
-	PrefixAdrs []byte
+import (
+	"errors"
+	"runtime"
+	"sync"
+
+	pow64 "github.com/AidosKuneen/aklib/tx/internal/pow_amd64"
+)
+
+//PoW does PoW for AMD64(with SSE or AVX)..
+func (tx *Transaction) PoW() error {
+	if tx.Nonce == nil || len(tx.Nonce) != 32 {
+		tx.Nonce = make([]byte, 32)
+	}
+	var wg sync.WaitGroup
+	var nonce []byte
+	var mutex sync.RWMutex
+	for j := 0; j < runtime.NumCPU(); j++ {
+		wg.Add(1)
+		go func(j int) {
+			defer wg.Done()
+			tx2 := tx.Clone()
+			add(tx2.Nonce, j)
+			b := tx2.bytesForPoW()
+			var n []byte
+			mutex.RLock()
+			n = nonce
+			mutex.RUnlock()
+			if pow64.PoW(b, tx2.Difficulty) {
+				mutex.Lock()
+				nonce = b[nonceLocation:]
+				mutex.Unlock()
+				return
+			}
+		}(j)
+	}
+	wg.Wait()
+	if nonce == nil {
+		return errors.New("cannot find PoW solution")
+	}
+	copy(tx.Nonce, nonce)
+	return nil
 }
-
-var (
-	//MainConfig is a Config for MainNet
-	MainConfig = &Config{
-		Difficulty: 29,
-		PrefixPriv: []byte{0xbf, 0x9d}, //"VM" in base58
-		PrefixAdrs: []byte{0xab, 0x55}, //"SM" in base58
-	}
-	//TestConfig is a Config for TestNet
-	TestConfig = &Config{
-		Difficulty: 24,
-		PrefixPriv: []byte{0xc0, 0x50}, //"VT" in base58
-		PrefixAdrs: []byte{0xac, 0x8},  //"ST" in base58
-	}
-)
-
-const (
-	//ADKMinUnit is minimum unit of ADK.
-	ADKMinUnit float64 = 0.00000001
-	//OneADK is for converting 1 ADK to unit in transactions.
-	OneADK = uint64(1 / ADKMinUnit)
-	//ADKSupply is total supply of ADK.
-	ADKSupply = 25 * 1000000 * OneADK
-)

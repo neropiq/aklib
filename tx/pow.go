@@ -1,3 +1,5 @@
+// +build !amd64
+
 // Copyright (c) 2017 Aidos Developer
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,36 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package aklib
+package tx
 
-//Config is settings for various parameters.
-type Config struct {
-	Net        int
-	Difficulty byte
-	PrefixPriv []byte
-	PrefixAdrs []byte
+//PoW does PoW for all platforms..
+func (tx *Transaction) PoW() error {
+	return tx.generalPoW()
 }
-
-var (
-	//MainConfig is a Config for MainNet
-	MainConfig = &Config{
-		Difficulty: 29,
-		PrefixPriv: []byte{0xbf, 0x9d}, //"VM" in base58
-		PrefixAdrs: []byte{0xab, 0x55}, //"SM" in base58
-	}
-	//TestConfig is a Config for TestNet
-	TestConfig = &Config{
-		Difficulty: 24,
-		PrefixPriv: []byte{0xc0, 0x50}, //"VT" in base58
-		PrefixAdrs: []byte{0xac, 0x8},  //"ST" in base58
-	}
-)
-
-const (
-	//ADKMinUnit is minimum unit of ADK.
-	ADKMinUnit float64 = 0.00000001
-	//OneADK is for converting 1 ADK to unit in transactions.
-	OneADK = uint64(1 / ADKMinUnit)
-	//ADKSupply is total supply of ADK.
-	ADKSupply = 25 * 1000000 * OneADK
-)

@@ -13,8 +13,10 @@ address : [![GoDoc](https://godoc.org/github.com/AidosKuneen/aklib/address?statu
 This  library is for managing AidosKuneen features including
 
 * Address
-* Transaction 
-* Proof of Work
+* Transaction  (not yet)
+* Proof of Work (in C) (not yet)
+* API call (not yet)
+* Transfer (not yet)
 
 ## Requirements
 

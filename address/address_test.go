@@ -30,11 +30,11 @@ import (
 )
 
 func TestAddress(t *testing.T) {
-	testAddress(t, aklib.MainNet, "AKPRIVM", "AKADRSM")
-	testAddress(t, aklib.TestNet, "AKPRIVT", "AKADRST")
+	testAddress(t, aklib.MainConfig, "AKPRIVM", "AKADRSM")
+	testAddress(t, aklib.TestConfig, "AKPRIVT", "AKADRST")
 }
 
-func testAddress(t *testing.T, net int, priv, adr string) {
+func testAddress(t *testing.T, net *aklib.Config, priv, adr string) {
 	seed := GenerateSeed()
 	a := New(10, seed, net)
 	s58 := a.Seed58()
@@ -81,6 +81,17 @@ func testAddress(t *testing.T, net int, priv, adr string) {
 	}
 	sig = c.Sign(msg)
 	if !Verify(sig, msg, pk) {
+		log.Println("signature is invalid")
+	}
+}
+
+func TestAddress2(t *testing.T) {
+	seed := GenerateSeed()
+	a := New(2, seed, aklib.MainConfig)
+	pk2 := a.merkle.PublicKey()
+	msg := []byte("This is a test for XMSS.")
+	sig := a.Sign(msg)
+	if !Verify(sig, msg, pk2) {
 		log.Println("signature is invalid")
 	}
 }
