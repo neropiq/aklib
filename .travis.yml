@@ -10,9 +10,9 @@ before_install:
 - go get -u golang.org/x/tools/cmd/cover
 - export PATH=$PATH:$GOPATH/bin
 - gometalinter --install --update
+- go generate
 
 script:
-- go generate
 - go test ./... -v -covermode=count -coverprofile=coverage.out
 
 after_success:
