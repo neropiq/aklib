@@ -22,7 +22,6 @@ package aklib
 
 //Config is settings for various parameters.
 type Config struct {
-	Net        int
 	Difficulty byte
 	PrefixPriv []byte
 	PrefixAdrs []byte
