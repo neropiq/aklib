@@ -24,7 +24,6 @@ This  library is for managing AidosKuneen features including
 
 * git
 * go 1.9+
-* yasm
 
 are required to compile this.
 
