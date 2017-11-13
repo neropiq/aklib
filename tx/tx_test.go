@@ -28,10 +28,11 @@ import (
 
 	"github.com/AidosKuneen/aklib"
 	"github.com/AidosKuneen/aklib/address"
+	"github.com/AidosKuneen/cuckoo"
 )
 
 var debugConfig = &aklib.Config{
-	Difficulty: 8,
+	Difficulty: 1,
 	PrefixPriv: []byte{0xc0, 0x50}, //"VT" in base58
 	PrefixAdrs: []byte{0xac, 0x8},  //"ST" in base58
 }
@@ -39,7 +40,7 @@ var debugConfig = &aklib.Config{
 var tx = &Transaction{
 	Body: &Body{
 		Type:    txType,
-		Nonce:   make([]byte, 32),
+		Nonce:   make([]uint32, cuckoo.ProofSize),
 		Time:    uint32(time.Now().Unix()),
 		Message: []byte("This is a test for a transaction."),
 		Inputs: []*Input{
@@ -97,7 +98,7 @@ var tx = &Transaction{
 	},
 }
 
-func TestTX(t *testing.T) {
+func TestValidHashTX(t *testing.T) {
 	h := make([]byte, 32)
 	h[30] = 0xff
 	if !isValidHash(h, 8) {
@@ -124,29 +125,40 @@ func TestTX(t *testing.T) {
 	if isValidHash(h, 13) {
 		t.Error("isValidHash is incorrect")
 	}
+}
+func TestPoW(t *testing.T) {
+	if err := tx.PoW(); err != nil {
+		t.Error(err)
+	}
+	if err := tx.Check(debugConfig); err != nil {
+		t.Error(err)
+	}
+}
+func TestTX(t *testing.T) {
+	tx.Nonce = make([]uint32, cuckoo.ProofSize)
 	if len(tx.NoExistHashes(m.GetTX, errNotFound)) != 4 {
 		t.Error("invalid nonexistshashes")
 	}
 	if err := tx.Check(debugConfig); err == nil {
 		t.Error("must be error")
 	}
-	if err := tx.generalPoW(); err != nil {
+	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
 	if err := tx.Check(debugConfig); err != nil {
 		t.Error(err)
 	}
 
-	tx.Time = uint32(time.Now().Add(2 * time.Second).Unix())
-	if err := tx.generalPoW(); err != nil {
+	tx.Time = uint32(time.Now().Add(time.Hour).Unix())
+	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
 	if err := tx.Check(debugConfig); err == nil {
 		t.Error("must be error")
 	}
 
-	time.Sleep(2 * time.Second)
-	if err := tx.generalPoW(); err != nil {
+	tx.Time = uint32(time.Now().Add(-1 * time.Minute).Unix())
+	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
 	if err := tx.Check(debugConfig); err != nil {
@@ -166,12 +178,12 @@ func TestTX(t *testing.T) {
 		Body:       b2,
 		Signatures: s2,
 	}
-	h = tx.Hash()
+	h := tx.Hash()
 	h2 := t2.Hash()
 	if !bytes.Equal(h, h2) {
 		t.Error("pack/unpack is incorrect")
 	}
-	tx.Nonce = make([]byte, 32)
+	tx.Nonce = make([]uint32, cuckoo.ProofSize)
 }
 
 type store map[[32]byte]*Body
@@ -281,7 +293,7 @@ func TestTX2(t *testing.T) {
 	tx.Signatures[0] = s1
 	tx.Signatures[1] = s3
 	tx.Signatures[2] = s4
-	if err := tx.generalPoW(); err != nil {
+	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
 	if err := tx.CheckAll(m.GetTX, address.Verify, debugConfig); err != nil {
@@ -290,7 +302,7 @@ func TestTX2(t *testing.T) {
 	if len(tx.NoExistHashes(m.GetTX, errNotFound)) != 0 {
 		t.Error("invalid nonexistshashes")
 	}
-	tx.Nonce = make([]byte, 32)
+	tx.Nonce = make([]uint32, cuckoo.ProofSize)
 	tx.Inputs[0].PreviousTX[0] = 0
 	tx.Inputs[1].PreviousTX[0] = 0
 	tx.Previous[0][0] = 0
@@ -328,13 +340,13 @@ func TestTX3(t *testing.T) {
 	tx.Signatures[0] = s1
 	tx.Signatures[1] = s3
 	tx.Signatures[2] = s4
-	if err := tx.generalPoW(); err != nil {
+	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
 	if err := tx.CheckAll(m.GetTX, address.Verify, debugConfig); err == nil {
 		t.Error("must be error")
 	}
-	tx.Nonce = make([]byte, 32)
+	tx.Nonce = make([]uint32, cuckoo.ProofSize)
 	tx.Inputs[0].PreviousTX[0] = 0
 	tx.Inputs[1].PreviousTX[0] = 0
 	tx.Previous[0][0] = 0
@@ -345,13 +357,13 @@ func TestTX3(t *testing.T) {
 }
 
 func TestTX4(t *testing.T) {
-	if err := tx.generalPoW(); err != nil {
+	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
 	if err := tx.Check(debugConfig); err != nil {
 		t.Error(err)
 	}
-	tx.Nonce = make([]byte, 32)
+	tx.Nonce = make([]uint32, cuckoo.ProofSize)
 	t.Log(tx.Hash())
 	if err := tx.PoW(); err != nil {
 		t.Error(err)
@@ -361,31 +373,11 @@ func TestTX4(t *testing.T) {
 	if err := tx.Check(debugConfig); err != nil {
 		t.Error(err)
 	}
-	tx.Nonce = make([]byte, 32)
-}
-
-func BenchmarkGeneralPoW(b *testing.B) {
-	tx.Difficulty = 28
-	for i := 0; i < b.N; i++ {
-		b.StopTimer()
-		for i := range tx.Nonce {
-			tx.Nonce[i] = 0
-		}
-		b.StartTimer()
-		if err := tx.generalPoW(); err != nil {
-			b.Error(err)
-		}
-	}
-	b.Log(tx.Hash())
-	b.Log(tx.Nonce)
-	for i := range tx.Nonce {
-		tx.Nonce[i] = 0
-	}
-	tx.Difficulty = 8
+	tx.Nonce = make([]uint32, cuckoo.ProofSize)
 }
 
 func BenchmarkPoW(b *testing.B) {
-	tx.Difficulty = 28
+	tx.Difficulty = 2
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		for i := range tx.Nonce {
@@ -401,5 +393,5 @@ func BenchmarkPoW(b *testing.B) {
 	for i := range tx.Nonce {
 		tx.Nonce[i] = 0
 	}
-	tx.Difficulty = 8
+	tx.Difficulty = 1
 }

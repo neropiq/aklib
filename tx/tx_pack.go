@@ -107,7 +107,10 @@ func (bd *Body) Pack() []byte {
 	b := make([]byte, 0, TransactionMax)
 
 	b = append(b, bd.Type...)
-	b = append(b, bd.Nonce...)
+	b = appendVarint(b, len(bd.Nonce))
+	for _, n := range bd.Nonce {
+		b = appendVarint(b, n)
+	}
 	b = appendVarint(b, bd.Time)
 	b = appendVarint(b, len(bd.Message))
 	b = append(b, bd.Message...)
@@ -234,9 +237,19 @@ func UnpackBody(dat []byte) (*Body, error) {
 	bd := &Body{}
 	bd.Type = make([]byte, 4)
 	copy(bd.Type, dat)
-	bd.Nonce = make([]byte, 32)
-	copy(bd.Nonce, dat[4:])
-	buf := bytes.NewBuffer(dat[4+32:])
+	buf := bytes.NewBuffer(dat[4:])
+	n, err := byte2Varint(buf)
+	if err != nil {
+		return nil, err
+	}
+	bd.Nonce = make([]uint32, n)
+	for i := range bd.Nonce {
+		non, err := byte2Varint(buf)
+		if err != nil {
+			return nil, err
+		}
+		bd.Nonce[i] = uint32(non)
+	}
 	tim, err := byte2Varint(buf)
 	if err != nil {
 		return nil, err
@@ -246,8 +259,7 @@ func UnpackBody(dat []byte) (*Body, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	n, err := byte2Varint(buf)
+	n, err = byte2Varint(buf)
 	if err != nil {
 		return nil, err
 	}

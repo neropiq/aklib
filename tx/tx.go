@@ -26,9 +26,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/AidosKuneen/cuckoo"
+
 	"github.com/AidosKuneen/aklib"
 	sha256 "github.com/AidosKuneen/sha256-simd"
-	blake2b "github.com/minio/blake2b-simd"
 )
 
 //max length of tx and fields in a transaction.
@@ -40,9 +41,7 @@ const (
 	MultisigMax        = 4
 	MultisigAddressMax = 32
 	PreviousMax        = 8
-)
 
-const (
 	nonceLocation = 4
 )
 
@@ -82,7 +81,7 @@ type MultiSig struct {
 //Body is a Transactoin except signature.
 type Body struct {
 	Type       []byte      //4 bytes
-	Nonce      []byte      //32 bytes
+	Nonce      []uint32    //20*VarInt
 	Time       uint32      //4 bytes
 	Message    []byte      //<255 bytes
 	Inputs     []*Input    //<33 * 32 = 1056 bytes
@@ -121,8 +120,15 @@ func (tx *Transaction) Check(cfg *aklib.Config) error {
 	if tx.Type == nil || !bytes.Equal(tx.Type, txType) {
 		return errors.New("invalid type")
 	}
-	if len(tx.Nonce) != 32 {
-		return errors.New("nonce must be 32 bytes")
+	if len(tx.Nonce) != cuckoo.ProofSize {
+		return fmt.Errorf("nonce must be %d size", cuckoo.ProofSize)
+	}
+	bs := tx.bytesForPoW()
+	hs := sha256.Sum256(bs)
+	var nonces [cuckoo.ProofSize]uint32
+	copy(nonces[:], tx.Nonce)
+	if err := cuckoo.Verify(hs[:], &nonces); err != nil {
+		return err
 	}
 	if time.Unix(int64(tx.Time), 0).After(time.Now()) {
 		return errors.New("timestamp is in future")
@@ -236,9 +242,11 @@ func (tx *Transaction) hasValidHashes(cfg *aklib.Config) error {
 
 //Hash reteurns hash of tx.
 func (tx *Transaction) Hash() []byte {
-	b := tx.bytesForPoW()
-	h := blake2b.Sum256(b)
-	hh := sha256.Sum256D32(h[:])
+	bd := tx.Body.Pack()
+	sig2 := tx.Signatures.Pack()
+	h := sha256.Sum256(sig2)
+	bd = append(bd, h[:]...)
+	hh := sha256.Sum256(bd)
 	return hh[:]
 }
 
@@ -327,17 +335,17 @@ func (tx *Transaction) CheckAll(getTX GetTXFunc, verify VerifyFunc,
 //BytesForSign returns byte slice for  signinig
 func (tx *Transaction) BytesForSign() []byte {
 	bd2 := *(tx.Body)
-	bd2.Nonce = make([]byte, 32)
+	bd2.Nonce = make([]uint32, cuckoo.ProofSize)
 	return bd2.Pack()
 }
 func (tx *Transaction) bytesForPoW() []byte {
-	bd := tx.Body.Pack()
-	bs := make([]byte, len(bd)+32)
-	copy(bs, bd)
+	bd2 := *(tx.Body)
+	bd2.Nonce = make([]uint32, cuckoo.ProofSize)
+	bd := bd2.Pack()
 	sig2 := tx.Signatures.Pack()
 	h := sha256.Sum256(sig2)
-	copy(bs[len(bd):], h[:])
-	return bs
+	bd = append(bd, h[:]...)
+	return bd
 }
 
 //Clone clones tx.
