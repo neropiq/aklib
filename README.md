@@ -16,7 +16,7 @@ This  library is for managing AidosKuneen features including
 
 * Address
 * Transaction  
-* Proof of Work (in go and C)
+* Proof of Work with [Cuckoo Cycle](https://godoc.org/github.com/AidosKuneen/cuckoo)
 * API call (not yet)
 * Transfer (not yet)
 
