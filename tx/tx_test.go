@@ -22,6 +22,7 @@ package tx
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"testing"
 	"time"
@@ -30,12 +31,6 @@ import (
 	"github.com/AidosKuneen/aklib/address"
 	"github.com/AidosKuneen/cuckoo"
 )
-
-var debugConfig = &aklib.Config{
-	Difficulty: 1,
-	PrefixPriv: []byte{0xc0, 0x50}, //"VT" in base58
-	PrefixAdrs: []byte{0xac, 0x8},  //"ST" in base58
-}
 
 var tx = &Transaction{
 	Body: &Body{
@@ -88,7 +83,7 @@ var tx = &Transaction{
 			make([]byte, 32),
 			make([]byte, 32),
 		},
-		Difficulty: debugConfig.Difficulty,
+		Difficulty: aklib.TestConfig.Difficulty,
 		LockTime:   0,
 	},
 	Signatures: [][]byte{
@@ -100,6 +95,15 @@ var tx = &Transaction{
 
 func TestValidHashTX(t *testing.T) {
 	h := make([]byte, 32)
+	h[31] = 0x1f
+	if isValidHash(h, 4) {
+		t.Error("isValidHash is incorrect")
+	}
+	h[31] = 0x0f
+	if !isValidHash(h, 4) {
+		t.Error("isValidHash is incorrect")
+	}
+	h[31] = 0
 	h[30] = 0xff
 	if !isValidHash(h, 8) {
 		t.Error("isValidHash is incorrect")
@@ -130,7 +134,7 @@ func TestPoW(t *testing.T) {
 	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tx.Check(debugConfig); err != nil {
+	if err := tx.Check(aklib.TestConfig); err != nil {
 		t.Error(err)
 	}
 }
@@ -139,13 +143,13 @@ func TestTX(t *testing.T) {
 	if len(tx.NoExistHashes(m.GetTX, errNotFound)) != 4 {
 		t.Error("invalid nonexistshashes")
 	}
-	if err := tx.Check(debugConfig); err == nil {
+	if err := tx.Check(aklib.TestConfig); err == nil {
 		t.Error("must be error")
 	}
 	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tx.Check(debugConfig); err != nil {
+	if err := tx.Check(aklib.TestConfig); err != nil {
 		t.Error(err)
 	}
 
@@ -153,7 +157,7 @@ func TestTX(t *testing.T) {
 	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tx.Check(debugConfig); err == nil {
+	if err := tx.Check(aklib.TestConfig); err == nil {
 		t.Error("must be error")
 	}
 
@@ -161,7 +165,7 @@ func TestTX(t *testing.T) {
 	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tx.Check(debugConfig); err != nil {
+	if err := tx.Check(aklib.TestConfig); err != nil {
 		t.Error(err)
 	}
 	b := tx.Body.Pack()
@@ -275,10 +279,10 @@ func TestTX2(t *testing.T) {
 	seed2 := address.GenerateSeed()
 	seed3 := address.GenerateSeed()
 	seed4 := address.GenerateSeed()
-	a1 := address.New(2, seed1, debugConfig)
-	a2 := address.New(2, seed2, debugConfig)
-	a3 := address.New(2, seed3, debugConfig)
-	a4 := address.New(2, seed4, debugConfig)
+	a1 := address.New(2, seed1, aklib.TestConfig)
+	a2 := address.New(2, seed2, aklib.TestConfig)
+	a3 := address.New(2, seed3, aklib.TestConfig)
+	a4 := address.New(2, seed4, aklib.TestConfig)
 	var d [32]byte
 	d[0] = 0x1
 	m[d].Outputs[0].Address = a1.PublicKey()
@@ -296,7 +300,7 @@ func TestTX2(t *testing.T) {
 	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tx.CheckAll(m.GetTX, address.Verify, debugConfig); err != nil {
+	if err := tx.CheckAll(m.GetTX, address.Verify, aklib.TestConfig); err != nil {
 		t.Error(err)
 	}
 	if len(tx.NoExistHashes(m.GetTX, errNotFound)) != 0 {
@@ -322,10 +326,10 @@ func TestTX3(t *testing.T) {
 	seed2 := address.GenerateSeed()
 	seed3 := address.GenerateSeed()
 	seed4 := address.GenerateSeed()
-	a1 := address.New(2, seed1, debugConfig)
-	a2 := address.New(2, seed2, debugConfig)
-	a3 := address.New(2, seed3, debugConfig)
-	a4 := address.New(2, seed4, debugConfig)
+	a1 := address.New(2, seed1, aklib.TestConfig)
+	a2 := address.New(2, seed2, aklib.TestConfig)
+	a3 := address.New(2, seed3, aklib.TestConfig)
+	a4 := address.New(2, seed4, aklib.TestConfig)
 	var d [32]byte
 	d[0] = 0x1
 	m[d].Outputs[0].Address = a1.PublicKey()
@@ -343,7 +347,7 @@ func TestTX3(t *testing.T) {
 	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tx.CheckAll(m.GetTX, address.Verify, debugConfig); err == nil {
+	if err := tx.CheckAll(m.GetTX, address.Verify, aklib.TestConfig); err == nil {
 		t.Error("must be error")
 	}
 	tx.Nonce = make([]uint32, cuckoo.ProofSize)
@@ -360,7 +364,7 @@ func TestTX4(t *testing.T) {
 	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tx.Check(debugConfig); err != nil {
+	if err := tx.Check(aklib.TestConfig); err != nil {
 		t.Error(err)
 	}
 	tx.Nonce = make([]uint32, cuckoo.ProofSize)
@@ -370,14 +374,14 @@ func TestTX4(t *testing.T) {
 	}
 	t.Log(tx.Nonce)
 	t.Log(tx.Hash())
-	if err := tx.Check(debugConfig); err != nil {
+	if err := tx.Check(aklib.TestConfig); err != nil {
 		t.Error(err)
 	}
 	tx.Nonce = make([]uint32, cuckoo.ProofSize)
 }
 
 func BenchmarkPoW(b *testing.B) {
-	tx.Difficulty = 2
+	tx.Difficulty = aklib.MainConfig.Difficulty
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		for i := range tx.Nonce {
@@ -387,8 +391,11 @@ func BenchmarkPoW(b *testing.B) {
 		if err := tx.PoW(); err != nil {
 			b.Error(err)
 		}
+		if err := tx.Check(aklib.MainConfig); err != nil {
+			b.Error(err)
+		}
 	}
-	b.Log(tx.Hash())
+	b.Log(hex.EncodeToString(tx.Hash()))
 	b.Log(tx.Nonce)
 	for i := range tx.Nonce {
 		tx.Nonce[i] = 0
