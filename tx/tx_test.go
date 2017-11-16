@@ -279,10 +279,23 @@ func TestTX2(t *testing.T) {
 	seed2 := address.GenerateSeed()
 	seed3 := address.GenerateSeed()
 	seed4 := address.GenerateSeed()
-	a1 := address.New(2, seed1, aklib.TestConfig)
-	a2 := address.New(2, seed2, aklib.TestConfig)
-	a3 := address.New(2, seed3, aklib.TestConfig)
-	a4 := address.New(2, seed4, aklib.TestConfig)
+	a1, err := address.New(address.Height10, seed1, aklib.TestConfig)
+	if err != nil {
+		t.Error(err)
+	}
+	a2, err := address.New(address.Height10, seed2, aklib.TestConfig)
+	if err != nil {
+		t.Error(err)
+	}
+	a3, err := address.New(address.Height10, seed3, aklib.TestConfig)
+	if err != nil {
+		t.Error(err)
+	}
+	a4, err := address.New(address.Height10, seed4, aklib.TestConfig)
+	if err != nil {
+		t.Error(err)
+	}
+
 	var d [32]byte
 	d[0] = 0x1
 	m[d].Outputs[0].Address = a1.PublicKey()
@@ -326,10 +339,22 @@ func TestTX3(t *testing.T) {
 	seed2 := address.GenerateSeed()
 	seed3 := address.GenerateSeed()
 	seed4 := address.GenerateSeed()
-	a1 := address.New(2, seed1, aklib.TestConfig)
-	a2 := address.New(2, seed2, aklib.TestConfig)
-	a3 := address.New(2, seed3, aklib.TestConfig)
-	a4 := address.New(2, seed4, aklib.TestConfig)
+	a1, err := address.New(address.Height10, seed1, aklib.TestConfig)
+	if err != nil {
+		t.Error(err)
+	}
+	a2, err := address.New(address.Height10, seed2, aklib.TestConfig)
+	if err != nil {
+		t.Error(err)
+	}
+	a3, err := address.New(address.Height10, seed3, aklib.TestConfig)
+	if err != nil {
+		t.Error(err)
+	}
+	a4, err := address.New(address.Height10, seed4, aklib.TestConfig)
+	if err != nil {
+		t.Error(err)
+	}
 	var d [32]byte
 	d[0] = 0x1
 	m[d].Outputs[0].Address = a1.PublicKey()
