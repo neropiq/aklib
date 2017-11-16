@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"io"
 )
 
 //byte2Varint converts VarInt of Bitcoin to uint64.
@@ -94,7 +95,7 @@ func appendVarint(b []byte, v interface{}) []byte {
 	case uint32:
 		val = uint64(l)
 	case uint64:
-		val = uint64(l)
+		val = l
 	default:
 		panic("v must be integer")
 	}
@@ -209,7 +210,7 @@ func unpackByteSlice2(buf *bytes.Buffer) ([][]byte, error) {
 	}
 	return ary, nil
 }
-func unpackByte32(buf *bytes.Buffer) []byte {
+func unpackByte32(buf io.Reader) []byte {
 	ary := make([]byte, 32)
 	if _, err := buf.Read(ary); err != nil {
 		panic(err)
@@ -244,8 +245,8 @@ func UnpackBody(dat []byte) (*Body, error) {
 	}
 	bd.Nonce = make([]uint32, n)
 	for i := range bd.Nonce {
-		non, err := byte2Varint(buf)
-		if err != nil {
+		non, errr := byte2Varint(buf)
+		if errr != nil {
 			return nil, err
 		}
 		bd.Nonce[i] = uint32(non)

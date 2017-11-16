@@ -55,7 +55,7 @@ type Address struct {
 
 //New returns Address struct.
 func New(h byte, seed []byte, config *aklib.Config) (*Address, error) {
-	if h < 0 || h > Height20 {
+	if h > Height20 {
 		return nil, errors.New("invalid height")
 	}
 	return &Address{
@@ -77,7 +77,7 @@ func (a *Address) Seed58() string {
 
 //NewFrom58 returns Address struct with base58 encoded seed.
 func NewFrom58(height byte, seed58 string, cfg *aklib.Config) (*Address, error) {
-	if height < 0 || height > Height20 {
+	if height > Height20 {
 		return nil, errors.New("invalid height")
 	}
 	if prefixPrivString != seed58[:len(prefixPrivString)] {
@@ -112,7 +112,7 @@ func (a *Address) PK58() string {
 
 //FromPK58 returns decode public key from base58 encoded string.
 func FromPK58(height byte, pub58 string, cfg *aklib.Config) ([]byte, error) {
-	if height < 0 || height > Height20 {
+	if height > Height20 {
 		return nil, errors.New("invalid height")
 	}
 	if prefixAdrsString != pub58[:len(prefixAdrsString)] {
@@ -137,7 +137,7 @@ func (a *Address) MarshalJSON() ([]byte, error) {
 		Merkle *xmss.Merkle
 		Config *aklib.Config
 	}{
-		Height: byte(a.height),
+		Height: a.height,
 		Seed:   a.Seed,
 		Merkle: a.merkle,
 		Config: a.config,

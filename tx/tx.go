@@ -41,8 +41,6 @@ const (
 	MultisigMax        = 4
 	MultisigAddressMax = 32
 	PreviousMax        = 8
-
-	nonceLocation = 4
 )
 
 var (
