@@ -34,7 +34,6 @@ func TestAddress(t *testing.T) {
 	testAddress(t, aklib.TestConfig, "AKPRIVT5", "AKADRST5", Height10)
 	testAddress(t, aklib.MainConfig, "AKPRIVM8", "AKADRSM8", Height16)
 	testAddress(t, aklib.TestConfig, "AKPRIVT8", "AKADRST8", Height16)
-	testAddress(t, aklib.MainConfig, "AKPRIVMA", "AKADRSMA", Height20)
 	testAddress(t, aklib.TestConfig, "AKPRIVTA", "AKADRSTA", Height20)
 }
 

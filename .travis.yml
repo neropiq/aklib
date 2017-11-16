@@ -3,11 +3,6 @@ language: go
 go:
   - 1.9
 
-addons:
-  apt:
-    packages:
-    - yasm
-
 before_install:
 - go get -u github.com/axw/gocov/gocov
 - go get -u github.com/alecthomas/gometalinter
@@ -18,7 +13,8 @@ before_install:
 - go generate -x ./...
 
 script:
-- travis_wait 30 go test ./... -v  -timeout 100m
+- travis_wait 30 go test ./... -tag travis -v  -timeout 100m
+- travis_wait 30 go test ./... -run ^TestAddress20$ -v  -timeout 100m
 
 after_success:
 - gometalinter -e bindata --deadline=1000s ./...
