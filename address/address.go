@@ -25,7 +25,6 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
-	"log"
 
 	"github.com/AidosKuneen/aklib"
 	"github.com/AidosKuneen/xmss"
@@ -76,10 +75,7 @@ func (a *Address) Seed58() string {
 }
 
 //NewFrom58 returns Address struct with base58 encoded seed.
-func NewFrom58(height byte, seed58 string, cfg *aklib.Config) (*Address, error) {
-	if height > Height20 {
-		return nil, errors.New("invalid height")
-	}
+func NewFrom58(seed58 string, cfg *aklib.Config) (*Address, error) {
 	if prefixPrivString != seed58[:len(prefixPrivString)] {
 		return nil, errors.New("invalid prefix string in seed")
 	}
@@ -87,12 +83,17 @@ func NewFrom58(height byte, seed58 string, cfg *aklib.Config) (*Address, error) 
 	if err != nil {
 		return nil, err
 	}
-	pref := cfg.PrefixPriv[height]
-	if !bytes.Equal(seed[:len(pref)], pref) {
-		log.Println((seed[:len(pref)]), pref)
+	var height byte
+	for ; height <= Height20; height++ {
+		pref := cfg.PrefixPriv[height]
+		if bytes.Equal(seed[:len(pref)], pref) {
+			break
+		}
+	}
+	if height > Height20 {
 		return nil, errors.New("invalid prefix bytes in seed")
 	}
-	return New(height, seed[len(pref):], cfg)
+	return New(height, seed[len(cfg.PrefixPriv[height]):], cfg)
 }
 
 //PublicKey returns public key.
@@ -111,10 +112,7 @@ func (a *Address) PK58() string {
 }
 
 //FromPK58 returns decode public key from base58 encoded string.
-func FromPK58(height byte, pub58 string, cfg *aklib.Config) ([]byte, error) {
-	if height > Height20 {
-		return nil, errors.New("invalid height")
-	}
+func FromPK58(pub58 string, cfg *aklib.Config) ([]byte, error) {
 	if prefixAdrsString != pub58[:len(prefixAdrsString)] {
 		return nil, errors.New("invalid prefix string in public key")
 	}
@@ -122,11 +120,17 @@ func FromPK58(height byte, pub58 string, cfg *aklib.Config) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	pref := cfg.PrefixAdrs[height]
-	if !bytes.Equal(pub[:len(pref)], pref) {
-		return nil, errors.New("invalid prefix bytes in public key")
+	var height byte
+	for ; height <= Height20; height++ {
+		pref := cfg.PrefixAdrs[height]
+		if bytes.Equal(pub[:len(pref)], pref) {
+			break
+		}
 	}
-	return pub[len(pref):], nil
+	if height > Height20 {
+		return nil, errors.New("invalid prefix bytes in seed")
+	}
+	return pub[len(cfg.PrefixAdrs[height]):], nil
 }
 
 //MarshalJSON  marshals Address into valid JSON.

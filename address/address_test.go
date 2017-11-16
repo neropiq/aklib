@@ -22,7 +22,6 @@ package address
 
 import (
 	"bytes"
-	"log"
 	"testing"
 
 	"github.com/AidosKuneen/aklib"
@@ -33,7 +32,7 @@ func TestAddress(t *testing.T) {
 	testAddress(t, aklib.TestConfig, "AKPRIVT5", "AKADRST5", Height10)
 	testAddress(t, aklib.MainConfig, "AKPRIVM8", "AKADRSM8", Height16)
 	testAddress(t, aklib.TestConfig, "AKPRIVT8", "AKADRST8", Height16)
-	testAddress(t, aklib.TestConfig, "AKPRIVTA", "AKADRSTA", Height20)
+	// testAddress(t, aklib.TestConfig, "AKPRIVTA", "AKADRSTA", Height20)
 }
 
 func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
@@ -43,7 +42,7 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 		t.Error(err)
 	}
 	s58 := a.Seed58()
-	aa, err := NewFrom58(h, s58, net)
+	aa, err := NewFrom58(s58, net)
 	if err != nil {
 		t.Error(err)
 	}
@@ -58,7 +57,7 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 	if pk58[:len(adr)] != adr {
 		t.Error("invalid address prefix")
 	}
-	pk, err := FromPK58(h, pk58, net)
+	pk, err := FromPK58(pk58, net)
 	if err != nil {
 		t.Error(err)
 	}
@@ -69,7 +68,7 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 	msg := []byte("This is a test for XMSS.")
 	sig := aa.Sign(msg)
 	if !Verify(sig, msg, pk) {
-		log.Println("signature is invalid")
+		t.Error("signature is invalid")
 	}
 	b, err := aa.MarshalJSON()
 	if err != nil {
@@ -98,6 +97,6 @@ func TestAddress2(t *testing.T) {
 	msg := []byte("This is a test for XMSS.")
 	sig := a.Sign(msg)
 	if !Verify(sig, msg, pk2) {
-		log.Println("signature is invalid")
+		t.Error("signature is invalid")
 	}
 }
