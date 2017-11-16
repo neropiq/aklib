@@ -13,7 +13,7 @@ before_install:
 - go generate -x ./...
 
 script:
-- travis_wait 30 go test ./... -tag travis -v  -timeout 100m
+- travis_wait 30 go test ./... -tags travis -v  -timeout 100m
 - travis_wait 30 go test ./... -run ^TestAddress20$ -v  -timeout 100m
 
 after_success:
