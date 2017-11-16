@@ -33,7 +33,7 @@ var (
 		Difficulty: 4,
 		PrefixPriv: [][]byte{
 			[]byte{0x2b, 0x69, 0xf7}, //"VM5" in base5
-			[]byte{0x2b, 0x69, 0x51}, //"VM8" in base5
+			[]byte{0x2b, 0x6a, 0x51}, //"VM8" in base5
 			[]byte{0x2b, 0x6a, 0x8c}, //"VMA" in base5
 		},
 		PrefixAdrs: [][]byte{

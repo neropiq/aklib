@@ -22,7 +22,6 @@ package address
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"testing"
 
@@ -34,7 +33,7 @@ func TestAddress(t *testing.T) {
 	testAddress(t, aklib.TestConfig, "AKPRIVT5", "AKADRST5", Height10)
 	testAddress(t, aklib.MainConfig, "AKPRIVM8", "AKADRSM8", Height16)
 	testAddress(t, aklib.TestConfig, "AKPRIVT8", "AKADRST8", Height16)
-	testAddress(t, aklib.TestConfig, "AKPRIVTA", "AKADRSTA", Height20)
+	// testAddress(t, aklib.TestConfig, "AKPRIVTA", "AKADRSTA", Height20)
 }
 
 func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
@@ -54,10 +53,8 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 	if !bytes.Equal(seed, aa.Seed) {
 		t.Error("invalid seed58")
 	}
-	fmt.Println(s58)
 
 	pk58 := a.PK58()
-	fmt.Println(pk58)
 	if pk58[:len(adr)] != adr {
 		t.Error("invalid address prefix")
 	}
@@ -87,7 +84,7 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 	}
 	sig = c.Sign(msg)
 	if !Verify(sig, msg, pk) {
-		log.Println("signature is invalid")
+		t.Error("signature is invalid")
 	}
 }
 
