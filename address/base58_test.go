@@ -48,36 +48,32 @@ func TestBase58(t *testing.T) {
 	}
 }
 
-// 171 85 : SM143bKyeipzswzkX1mU4qSFP93tnpDwGRrJqQyfAKaH7YtZjwdQ   SM2znmZRgaFg75pLDvM64nkrA4AWWTvn9DVNwf8M4KEHW3SuAcx7
-// 172 8 : ST11JAqKNFz4R5qmmHXZvZqa14U8LBGn1HFz75nndFsUXtEKPidN   ST2x3M4mQ7QjeDfMUC7BvXAAmyak3pyct4u4DKwUXFXUvNootRag
-// 191 157 : VM1d5XEHT9nSg1KxMoQ1vzRA7mHHBzM9ZvL1n4h5XTpzfhfPMoxy   VM3ZphTjV1D7u99Y4hydvwjktgPtue3zShy5tJqmRTV14CE3qkDm
-// 192 80 : VT1aL6jdAgwWD9Ayc5A7nipUjghWjMPzJmjh3jWCzQ8C633668b2   VT3X5Gy5CYNBSGzZJyjjng95Wbp8T16qBZNm9yettPnCUXWcASYf
 func TestBase58A(t *testing.T) {
-	from := make([]byte, 34)
-	to := make([]byte, 34)
+	from := make([]byte, 35)
+	to := make([]byte, 35)
 	for i := range to {
 		to[i] = 0xff
 	}
-	var foundS, foundV bool
 	for i := 0; i <= 0xff; i++ {
 		from[0] = byte(i)
 		to[0] = byte(i)
 		for k := 0; k <= 0xff; k++ {
 			from[1] = byte(k)
 			to[1] = byte(k)
-			ef := encode58(from)
-			et := encode58(to)
-			if ef[0] == et[0] && ef[0] == 'S' && ef[1] == et[1] && ef[1] == 'M' && !foundS {
-				fmt.Println(i, k, ":", ef, " ", et)
-			}
-			if ef[0] == et[0] && ef[0] == 'S' && ef[1] == et[1] && ef[1] == 'T' && !foundS {
-				fmt.Println(i, k, ":", ef, " ", et)
-			}
-			if ef[0] == et[0] && ef[0] == 'V' && ef[1] == et[1] && ef[1] == 'M' && !foundV {
-				fmt.Println(i, k, ":", ef, " ", et)
-			}
-			if ef[0] == et[0] && ef[0] == 'V' && ef[1] == et[1] && ef[1] == 'T' && !foundV {
-				fmt.Println(i, k, ":", ef, " ", et)
+			for j := 0; j <= 0xff; j++ {
+				from[2] = byte(j)
+				to[2] = byte(j)
+				ef := encode58(from)
+				et := encode58(to)
+				if ef[0] == et[0] && ef[1] == et[1] && ef[2] == et[2] {
+					if ef[0] == 'S' || ef[0] == 'V' {
+						if ef[1] == 'T' || ef[1] == 'M' {
+							if ef[2] == '5' || ef[2] == '8' || ef[2] == 'A' {
+								fmt.Printf("%x %x %x:%s %s\n", i, k, j, ef, et)
+							}
+						}
+					}
+				}
 			}
 		}
 	}

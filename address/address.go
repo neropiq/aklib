@@ -25,6 +25,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"log"
 
 	"github.com/AidosKuneen/aklib"
 	"github.com/AidosKuneen/xmss"
@@ -35,32 +36,50 @@ var (
 	prefixAdrsString = "AKADR"
 )
 
+//Height represents height of Merkle Tree for XMSS
+const (
+	Height10 = iota
+	Height16
+	Height20
+)
+
+var heights = []uint32{10, 16, 20}
+
 //Address represents an address an assciated Merkle Tree in ADK.
 type Address struct {
+	height byte
 	config *aklib.Config
 	merkle *xmss.Merkle
 	Seed   []byte
 }
 
 //New returns Address struct.
-func New(h uint32, seed []byte, config *aklib.Config) *Address {
+func New(h byte, seed []byte, config *aklib.Config) (*Address, error) {
+	if h < 0 || h > Height20 {
+		return nil, errors.New("invalid height")
+	}
 	return &Address{
-		merkle: xmss.NewMerkle(h, seed),
+		height: h,
+		merkle: xmss.NewMerkle(heights[h], seed),
 		Seed:   seed,
 		config: config,
-	}
+	}, nil
 }
 
 //Seed58 returns base58 encoded seed.
 func (a *Address) Seed58() string {
-	s := make([]byte, len(a.Seed)+2)
-	copy(s, a.config.PrefixPriv)
-	copy(s[2:], a.Seed)
+	pref := a.config.PrefixPriv[a.height]
+	s := make([]byte, len(a.Seed)+len(pref))
+	copy(s, pref)
+	copy(s[len(pref):], a.Seed)
 	return prefixPrivString + encode58(s)
 }
 
 //NewFrom58 returns Address struct with base58 encoded seed.
-func NewFrom58(h uint32, seed58 string, cfg *aklib.Config) (*Address, error) {
+func NewFrom58(height byte, seed58 string, cfg *aklib.Config) (*Address, error) {
+	if height < 0 || height > Height20 {
+		return nil, errors.New("invalid height")
+	}
 	if prefixPrivString != seed58[:len(prefixPrivString)] {
 		return nil, errors.New("invalid prefix string in seed")
 	}
@@ -68,10 +87,12 @@ func NewFrom58(h uint32, seed58 string, cfg *aklib.Config) (*Address, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !bytes.Equal(seed[:2], cfg.PrefixPriv) {
+	pref := cfg.PrefixPriv[height]
+	if !bytes.Equal(seed[:len(pref)], pref) {
+		log.Println((seed[:len(pref)]), pref)
 		return nil, errors.New("invalid prefix bytes in seed")
 	}
-	return New(h, seed[2:], cfg), nil
+	return New(height, seed[len(pref):], cfg)
 }
 
 //PublicKey returns public key.
@@ -81,15 +102,19 @@ func (a *Address) PublicKey() []byte {
 
 //PK58 returns base58 encoded public key.
 func (a *Address) PK58() string {
+	pref := a.config.PrefixAdrs[a.height]
 	pub := a.merkle.PublicKey()
-	p := make([]byte, len(pub)+2)
-	copy(p, a.config.PrefixAdrs)
-	copy(p[2:], pub)
+	p := make([]byte, len(pub)+len(pref))
+	copy(p, pref)
+	copy(p[len(pref):], pub)
 	return prefixAdrsString + encode58(p)
 }
 
 //FromPK58 returns decode public key from base58 encoded string.
-func FromPK58(pub58 string, cfg *aklib.Config) ([]byte, error) {
+func FromPK58(height byte, pub58 string, cfg *aklib.Config) ([]byte, error) {
+	if height < 0 || height > Height20 {
+		return nil, errors.New("invalid height")
+	}
 	if prefixAdrsString != pub58[:len(prefixAdrsString)] {
 		return nil, errors.New("invalid prefix string in public key")
 	}
@@ -97,19 +122,22 @@ func FromPK58(pub58 string, cfg *aklib.Config) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !bytes.Equal(pub[:2], cfg.PrefixAdrs) {
+	pref := cfg.PrefixAdrs[height]
+	if !bytes.Equal(pub[:len(pref)], pref) {
 		return nil, errors.New("invalid prefix bytes in public key")
 	}
-	return pub[2:], nil
+	return pub[len(pref):], nil
 }
 
 //MarshalJSON  marshals Address into valid JSON.
 func (a *Address) MarshalJSON() ([]byte, error) {
 	s := struct {
+		Height byte
 		Seed   []byte
 		Merkle *xmss.Merkle
 		Config *aklib.Config
 	}{
+		Height: byte(a.height),
 		Seed:   a.Seed,
 		Merkle: a.merkle,
 		Config: a.config,
@@ -120,6 +148,7 @@ func (a *Address) MarshalJSON() ([]byte, error) {
 //UnmarshalJSON  unmarshals JSON to Address.
 func (a *Address) UnmarshalJSON(b []byte) error {
 	s := struct {
+		Height byte
 		Seed   []byte
 		Merkle *xmss.Merkle
 		Config *aklib.Config
@@ -128,6 +157,7 @@ func (a *Address) UnmarshalJSON(b []byte) error {
 	a.Seed = s.Seed
 	a.merkle = s.Merkle
 	a.config = s.Config
+	a.height = s.Height
 	return err
 }
 

@@ -30,19 +30,26 @@ import (
 )
 
 func TestAddress(t *testing.T) {
-	testAddress(t, aklib.MainConfig, "AKPRIVM", "AKADRSM")
-	testAddress(t, aklib.TestConfig, "AKPRIVT", "AKADRST")
+	testAddress(t, aklib.MainConfig, "AKPRIVM5", "AKADRSM5", Height10)
+	testAddress(t, aklib.TestConfig, "AKPRIVT5", "AKADRST5", Height10)
+	testAddress(t, aklib.MainConfig, "AKPRIVM8", "AKADRSM8", Height16)
+	testAddress(t, aklib.TestConfig, "AKPRIVT8", "AKADRST8", Height16)
+	testAddress(t, aklib.MainConfig, "AKPRIVMA", "AKADRSMA", Height20)
+	testAddress(t, aklib.TestConfig, "AKPRIVTA", "AKADRSTA", Height20)
 }
 
-func testAddress(t *testing.T, net *aklib.Config, priv, adr string) {
+func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 	seed := GenerateSeed()
-	a := New(10, seed, net)
-	s58 := a.Seed58()
-	aa, err := NewFrom58(10, s58, net)
+	a, err := New(h, seed, net)
 	if err != nil {
 		t.Error(err)
 	}
-	if s58[:7] != priv {
+	s58 := a.Seed58()
+	aa, err := NewFrom58(h, s58, net)
+	if err != nil {
+		t.Error(err)
+	}
+	if s58[:len(priv)] != priv {
 		t.Error("invalid seed58 prefix")
 	}
 	if !bytes.Equal(seed, aa.Seed) {
@@ -52,10 +59,10 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string) {
 
 	pk58 := a.PK58()
 	fmt.Println(pk58)
-	if pk58[:7] != adr {
+	if pk58[:len(adr)] != adr {
 		t.Error("invalid address prefix")
 	}
-	pk, err := FromPK58(pk58, net)
+	pk, err := FromPK58(h, pk58, net)
 	if err != nil {
 		t.Error(err)
 	}
@@ -87,7 +94,10 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string) {
 
 func TestAddress2(t *testing.T) {
 	seed := GenerateSeed()
-	a := New(2, seed, aklib.MainConfig)
+	a, err := New(Height10, seed, aklib.MainConfig)
+	if err != nil {
+		t.Error(err)
+	}
 	pk2 := a.merkle.PublicKey()
 	msg := []byte("This is a test for XMSS.")
 	sig := a.Sign(msg)

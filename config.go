@@ -23,22 +23,38 @@ package aklib
 //Config is settings for various parameters.
 type Config struct {
 	Difficulty byte
-	PrefixPriv []byte
-	PrefixAdrs []byte
+	PrefixPriv [][]byte
+	PrefixAdrs [][]byte
 }
 
 var (
 	//MainConfig is a Config for MainNet
 	MainConfig = &Config{
 		Difficulty: 4,
-		PrefixPriv: []byte{0xbf, 0x9d}, //"VM" in base58
-		PrefixAdrs: []byte{0xab, 0x55}, //"SM" in base58
+		PrefixPriv: [][]byte{
+			[]byte{0x2b, 0x69, 0xf7}, //"VM5" in base5
+			[]byte{0x2b, 0x69, 0x51}, //"VM8" in base5
+			[]byte{0x2b, 0x6a, 0x8c}, //"VMA" in base5
+		},
+		PrefixAdrs: [][]byte{
+			[]byte{0x26, 0xd1, 0xb8}, //"SM5" in base5
+			[]byte{0x26, 0xd2, 0x12}, //"SM8" in base5
+			[]byte{0x26, 0xd2, 0x4d}, //"SMA" in base5
+		},
 	}
 	//TestConfig is a Config for TestNet
 	TestConfig = &Config{
 		Difficulty: 1,
-		PrefixPriv: []byte{0xc0, 0x50}, //"VT" in base58
-		PrefixAdrs: []byte{0xac, 0x8},  //"ST" in base58
+		PrefixPriv: [][]byte{
+			[]byte{0x2b, 0x92, 0x87}, //"VT5" in base5
+			[]byte{0x2b, 0x92, 0xe0}, //"VT8" in base5
+			[]byte{0x2b, 0x93, 0x1c}, //"VTA" in base5
+		},
+		PrefixAdrs: [][]byte{
+			[]byte{0x26, 0xfa, 0x48}, //"ST5" in base5
+			[]byte{0x26, 0xfa, 0xa1}, //"ST8" in base5
+			[]byte{0x26, 0xfa, 0xdd}, //"STA" in base5
+		},
 	}
 )
 
