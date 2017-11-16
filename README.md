@@ -43,11 +43,11 @@ are required to compile this.
 	seed := GenerateSeed()
 	adr1 := New(address.Height10, seed, MainConfig)
 	seed58 := adr1.Seed58() //base58 encoded seed
-	adr2, err := NewFrom58(address.Height10, seed58, MainConfig)
+	adr2, err := NewFrom58(seed58, MainConfig)
 	//adr1 and adr2 should be same
 
 	pk58 := adr1.PK58() //base58 encoded public key
-	pk, err := FromPK58(address.Height10, pk58, MainConfig)
+	pk, err := FromPK58(pk58, MainConfig)
 
 	msg := []byte("This is a test for XMSS.")
 	sig := adr1.Sign(msg)	
