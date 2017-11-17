@@ -27,6 +27,9 @@ import (
 	"github.com/AidosKuneen/aklib"
 )
 
-func TestAddress20(t *testing.T) {
+func TestAddressMA(t *testing.T) {
 	testAddress(t, aklib.MainConfig, "AKPRIVMA", "AKADRSMA", Height20)
+}
+func TestAddressTA(t *testing.T) {
+	testAddress(t, aklib.TestConfig, "AKPRIVTA", "AKADRSTA", Height20)
 }

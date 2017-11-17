@@ -32,7 +32,6 @@ func TestAddress(t *testing.T) {
 	testAddress(t, aklib.TestConfig, "AKPRIVT5", "AKADRST5", Height10)
 	testAddress(t, aklib.MainConfig, "AKPRIVM8", "AKADRSM8", Height16)
 	testAddress(t, aklib.TestConfig, "AKPRIVT8", "AKADRST8", Height16)
-	testAddress(t, aklib.TestConfig, "AKPRIVTA", "AKADRSTA", Height20)
 }
 
 func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
@@ -42,15 +41,31 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 		t.Error(err)
 	}
 	s58 := a.Seed58()
-	aa, err := NewFrom58(s58, net)
-	if err != nil {
-		t.Error(err)
+	if h == Height10 {
+		aa, err := NewFrom58(s58, net)
+		if err != nil {
+			t.Error(err)
+		}
+		if a.Height() != h {
+			t.Error("invalid height")
+		}
+		if !bytes.Equal(seed, aa.Seed) {
+			t.Error("invalid seed58")
+		}
+	} else {
+		height, se, err := from58(s58, net)
+		if err != nil {
+			t.Error(err)
+		}
+		if height != h {
+			t.Error("invalid height")
+		}
+		if !bytes.Equal(seed, se) {
+			t.Error("invalid seed58")
+		}
 	}
 	if s58[:len(priv)] != priv {
 		t.Error("invalid seed58 prefix")
-	}
-	if !bytes.Equal(seed, aa.Seed) {
-		t.Error("invalid seed58")
 	}
 
 	pk58 := a.PK58()
@@ -66,11 +81,11 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 		t.Error("invalid frompk58")
 	}
 	msg := []byte("This is a test for XMSS.")
-	sig := aa.Sign(msg)
+	sig := a.Sign(msg)
 	if !Verify(sig, msg, pk) {
 		t.Error("signature is invalid")
 	}
-	b, err := aa.MarshalJSON()
+	b, err := a.MarshalJSON()
 	if err != nil {
 		t.Error(err)
 	}
