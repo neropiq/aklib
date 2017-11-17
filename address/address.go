@@ -90,7 +90,7 @@ func from58(seed58 string, cfg *aklib.Config) (byte, []byte, error) {
 	if height > Height20 {
 		return 0, nil, errors.New("invalid prefix bytes in seed")
 	}
-	return height, seed, nil
+	return height, seed[len(cfg.PrefixPriv[height]):], nil
 }
 
 //NewFrom58 returns Address struct with base58 encoded seed.
@@ -99,7 +99,7 @@ func NewFrom58(seed58 string, cfg *aklib.Config) (*Address, error) {
 	if err != nil {
 		return nil, err
 	}
-	return New(height, seed[len(cfg.PrefixPriv[height]):], cfg)
+	return New(height, seed, cfg)
 }
 
 //PublicKey returns public key.
