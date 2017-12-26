@@ -32,9 +32,9 @@ var (
 	MainConfig = &Config{
 		Difficulty: 4,
 		PrefixPriv: [][]byte{
-			[]byte{0x2b, 0x69, 0xf7}, //"VM5" in base5
-			[]byte{0x2b, 0x6a, 0x51}, //"VM8" in base5
-			[]byte{0x2b, 0x6a, 0x8c}, //"VMA" in base5
+			[]byte{0x06, 0xa2, 0x71}, //"VM5" in base5
+			[]byte{0x06, 0xa2, 0x7f}, //"VM8" in base5
+			[]byte{0x06, 0xa2, 0x87}, //"VMA" in base5
 		},
 		PrefixAdrs: [][]byte{
 			[]byte{0x26, 0xd1, 0xb8}, //"SM5" in base5
@@ -46,9 +46,9 @@ var (
 	TestConfig = &Config{
 		Difficulty: 1,
 		PrefixPriv: [][]byte{
-			[]byte{0x2b, 0x92, 0x87}, //"VT5" in base5
-			[]byte{0x2b, 0x92, 0xe0}, //"VT8" in base5
-			[]byte{0x2b, 0x93, 0x1c}, //"VTA" in base5
+			[]byte{0x06, 0xa8, 0xa3}, //"VT5" in base5
+			[]byte{0x06, 0xa8, 0xb0}, //"VT8" in base5
+			[]byte{0x06, 0xa8, 0xba}, //"VTA" in base5
 		},
 		PrefixAdrs: [][]byte{
 			[]byte{0x26, 0xfa, 0x48}, //"ST5" in base5

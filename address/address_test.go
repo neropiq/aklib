@@ -22,6 +22,7 @@ package address
 
 import (
 	"bytes"
+	"crypto/rand"
 	"testing"
 
 	"github.com/AidosKuneen/aklib"
@@ -39,14 +40,27 @@ func TestAddressT8(t *testing.T) {
 }
 
 func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
+	pwd1 := make([]byte, 15)
+	if _, err := rand.Read(pwd1); err != nil {
+		panic(err)
+	}
+	pwd2 := make([]byte, 15)
+	if _, err := rand.Read(pwd2); err != nil {
+		panic(err)
+	}
 	seed := GenerateSeed()
 	a, err := New(h, seed, net)
 	if err != nil {
 		t.Error(err)
 	}
-	s58 := a.Seed58()
+	s58 := a.Seed58(pwd1)
+	t.Log(s58)
+	_, err = NewFrom58(s58, pwd2, net)
+	if err == nil {
+		t.Error("should be error")
+	}
 	if h == Height10 {
-		aa, err := NewFrom58(s58, net)
+		aa, err := NewFrom58(s58, pwd1, net)
 		if err != nil {
 			t.Error(err)
 		}
@@ -57,7 +71,7 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 			t.Error("invalid seed58")
 		}
 	} else {
-		height, se, err := from58(s58, net)
+		height, se, err := from58(s58, pwd1, net)
 		if err != nil {
 			t.Error(err)
 		}
@@ -73,6 +87,7 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 	}
 
 	pk58 := a.PK58()
+	t.Log(pk58)
 	if pk58[:len(adr)] != adr {
 		t.Error("invalid address prefix")
 	}

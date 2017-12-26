@@ -22,11 +22,14 @@ package address
 
 import (
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
 
 	"github.com/AidosKuneen/aklib"
+	sha256 "github.com/AidosKuneen/sha256-simd"
 	"github.com/AidosKuneen/xmss"
 )
 
@@ -51,6 +54,20 @@ type Address struct {
 	Seed   []byte
 }
 
+func enc(text []byte, pwd []byte) []byte {
+	key := sha256.Sum256(pwd)
+	block, err := aes.NewCipher(key[:])
+	if err != nil {
+		panic(err)
+	}
+
+	iv := sha256.Sum256(key[:])
+	ctext := make([]byte, len(text))
+	encryptStream := cipher.NewCTR(block, iv[:aes.BlockSize])
+	encryptStream.XORKeyStream(ctext, text)
+	return ctext
+}
+
 //New returns Address struct.
 func New(h byte, seed []byte, config *aklib.Config) (*Address, error) {
 	if h > Height20 {
@@ -63,39 +80,64 @@ func New(h byte, seed []byte, config *aklib.Config) (*Address, error) {
 	}, nil
 }
 
-//Seed58 returns base58 encoded seed.
-func (a *Address) Seed58() string {
+//NewFromEncrypted returns Address struct.
+func NewFromEncrypted(h byte, eseed, pwd []byte, config *aklib.Config) (*Address, error) {
+	return New(h, enc(eseed, pwd), config)
+}
+
+//Seed58 returns base58-encoded encrypted seed.
+func (a *Address) Seed58(pwd []byte) string {
+	out := make([]byte, len(a.Seed)+4)
+	copy(out, a.Seed)
+	hash := sha256.Sum256(a.Seed)
+	hash = sha256.Sum256(hash[:])
+
+	copy(out[len(a.Seed):], hash[0:4])
+	eseed := enc(out, pwd)
+
 	pref := a.config.PrefixPriv[a.Height()]
-	s := make([]byte, len(a.Seed)+len(pref))
+	s := make([]byte, len(eseed)+len(pref))
 	copy(s, pref)
-	copy(s[len(pref):], a.Seed)
+	copy(s[len(pref):], eseed)
 	return prefixPrivString + encode58(s)
 }
 
-func from58(seed58 string, cfg *aklib.Config) (byte, []byte, error) {
+func from58(seed58 string, pwd []byte, cfg *aklib.Config) (byte, []byte, error) {
 	if prefixPrivString != seed58[:len(prefixPrivString)] {
 		return 0, nil, errors.New("invalid prefix string in seed")
 	}
-	seed, err := decode58(seed58[len(prefixPrivString):])
+	eseed, err := decode58(seed58[len(prefixPrivString):])
 	if err != nil {
 		return 0, nil, err
 	}
 	var height byte
 	for ; height <= Height20; height++ {
 		pref := cfg.PrefixPriv[height]
-		if bytes.Equal(seed[:len(pref)], pref) {
+		if bytes.Equal(eseed[:len(pref)], pref) {
 			break
 		}
 	}
 	if height > Height20 {
 		return 0, nil, errors.New("invalid prefix bytes in seed")
 	}
-	return height, seed[len(cfg.PrefixPriv[height]):], nil
+	eseed = eseed[len(cfg.PrefixPriv[height]):]
+	seed := enc(eseed, pwd)
+	encoded := seed[:len(seed)-4]
+	cksum := seed[len(seed)-4:]
+
+	//Perform SHA-256 twice
+	hash := sha256.Sum256(encoded)
+	hash = sha256.Sum256(hash[:])
+	if !bytes.Equal(hash[:4], cksum) {
+		return 0, nil, errors.New("invalid password")
+	}
+	return height, encoded, nil
+
 }
 
 //NewFrom58 returns Address struct with base58 encoded seed.
-func NewFrom58(seed58 string, cfg *aklib.Config) (*Address, error) {
-	height, seed, err := from58(seed58, cfg)
+func NewFrom58(seed58 string, pwd []byte, cfg *aklib.Config) (*Address, error) {
+	height, seed, err := from58(seed58, pwd, cfg)
 	if err != nil {
 		return nil, err
 	}

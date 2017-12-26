@@ -48,9 +48,11 @@ func TestBase58(t *testing.T) {
 	}
 }
 
-func BenchBase58A(b *testing.B) {
-	from := make([]byte, 35)
-	to := make([]byte, 35)
+func BenchmarkBase58A(b *testing.B) {
+	from := make([]byte, 35+4)
+	to := make([]byte, 35+4)
+	// from := make([]byte, 35)
+	// to := make([]byte, 35)
 	for i := range to {
 		to[i] = 0xff
 	}
