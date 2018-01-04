@@ -40,12 +40,13 @@ var (
 
 //Height represents height of Merkle Tree for XMSS
 const (
-	Height10 = iota
+	Height2 = iota
+	Height10
 	Height16
 	Height20
 )
 
-var heights = []uint32{10, 16, 20}
+var heights = []uint32{2, 10, 16, 20}
 
 //Address represents an address an assciated Merkle Tree in ADK.
 type Address struct {

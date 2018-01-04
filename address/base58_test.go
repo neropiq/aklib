@@ -48,7 +48,7 @@ func TestBase58(t *testing.T) {
 	}
 }
 
-func BenchmarkBase58A(b *testing.B) {
+func BenchmarkBase58ASeed(b *testing.B) {
 	from := make([]byte, 35+4)
 	to := make([]byte, 35+4)
 	// from := make([]byte, 35)
@@ -68,9 +68,40 @@ func BenchmarkBase58A(b *testing.B) {
 				ef := encode58(from)
 				et := encode58(to)
 				if ef[0] == et[0] && ef[1] == et[1] && ef[2] == et[2] {
-					if ef[0] == 'S' || ef[0] == 'V' {
+					if ef[0] == 'V' {
 						if ef[1] == 'T' || ef[1] == 'M' {
-							if ef[2] == '5' || ef[2] == '8' || ef[2] == 'A' {
+							if ef[2] == '1' || ef[2] == '5' || ef[2] == '8' || ef[2] == 'A' {
+								fmt.Printf("%x %x %x:%s %s\n", i, k, j, ef, et)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+func BenchmarkBase58AAddr(b *testing.B) {
+	from := make([]byte, 35)
+	to := make([]byte, 35)
+	for i := range to {
+		to[i] = 0xff
+	}
+	for i := 0; i <= 0xff; i++ {
+		from[0] = byte(i)
+		to[0] = byte(i)
+		for k := 0; k <= 0xff; k++ {
+			from[1] = byte(k)
+			to[1] = byte(k)
+			for j := 0; j <= 0xff; j++ {
+				from[2] = byte(j)
+				to[2] = byte(j)
+				ef := encode58(from)
+				et := encode58(to)
+				if ef[0] == et[0] && ef[1] == et[1] && ef[2] == et[2] {
+					if ef[0] == 'S' {
+						if ef[1] == 'T' || ef[1] == 'M' {
+							if ef[2] == '1' || ef[2] == '5' || ef[2] == '8' || ef[2] == 'A' {
 								fmt.Printf("%x %x %x:%s %s\n", i, k, j, ef, et)
 							}
 						}
