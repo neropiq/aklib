@@ -213,10 +213,7 @@ func isValidHash(h []byte, dif byte) bool {
 		return true
 	}
 	b := (1 << (8 - d)) - 1
-	if h[31-i] > byte(b) {
-		return false
-	}
-	return true
+	return !(h[31-i] > byte(b))
 }
 
 //hasValidHashes reteurns true if  hashes in tx and tx hash  meets difficulty.

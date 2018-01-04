@@ -65,9 +65,9 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 		t.Error("should be error")
 	}
 	if h == Height10 {
-		aa, err := NewFrom58(s58, pwd1, net)
-		if err != nil {
-			t.Error(err)
+		aa, errr := NewFrom58(s58, pwd1, net)
+		if errr != nil {
+			t.Error(errr)
 		}
 		if a.Height() != h {
 			t.Error("invalid height")
@@ -76,9 +76,9 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 			t.Error("invalid seed58")
 		}
 	} else {
-		height, se, err := from58(s58, pwd1, net)
-		if err != nil {
-			t.Error(err)
+		height, se, errr := from58(s58, pwd1, net)
+		if errr != nil {
+			t.Error(errr)
 		}
 		if height != h {
 			t.Error("invalid height")
