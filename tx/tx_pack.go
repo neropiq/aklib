@@ -108,6 +108,7 @@ func (bd *Body) Pack() []byte {
 	b := make([]byte, 0, TransactionMax)
 
 	b = append(b, bd.Type...)
+	b = appendVarint(b, bd.Gnonce)
 	b = appendVarint(b, len(bd.Nonce))
 	for _, n := range bd.Nonce {
 		b = appendVarint(b, n)
@@ -239,6 +240,11 @@ func UnpackBody(dat []byte) (*Body, error) {
 	bd.Type = make([]byte, 4)
 	copy(bd.Type, dat)
 	buf := bytes.NewBuffer(dat[4:])
+	gnonce, err := byte2Varint(buf)
+	if err != nil {
+		return nil, err
+	}
+	bd.Gnonce = uint32(gnonce)
 	n, err := byte2Varint(buf)
 	if err != nil {
 		return nil, err

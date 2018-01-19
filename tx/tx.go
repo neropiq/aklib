@@ -22,8 +22,10 @@ package tx
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/AidosKuneen/cuckoo"
@@ -79,6 +81,7 @@ type MultiSig struct {
 //Body is a Transactoin except signature.
 type Body struct {
 	Type       []byte      //4 bytes
+	Gnonce     uint32      //4 bytes
 	Nonce      []uint32    //20*VarInt
 	Time       uint32      //4 bytes
 	Message    []byte      //<255 bytes
@@ -123,9 +126,7 @@ func (tx *Transaction) Check(cfg *aklib.Config) error {
 	}
 	bs := tx.bytesForPoW()
 	hs := sha256.Sum256(bs)
-	var nonces [cuckoo.ProofSize]uint32
-	copy(nonces[:], tx.Nonce)
-	if err := cuckoo.Verify(hs[:], &nonces); err != nil {
+	if err := cuckoo.Verify(hs[:], tx.Nonce); err != nil {
 		return err
 	}
 	if time.Unix(int64(tx.Time), 0).After(time.Now()) {
@@ -220,6 +221,7 @@ func isValidHash(h []byte, dif byte) bool {
 func (tx *Transaction) hasValidHashes(cfg *aklib.Config) error {
 	h := tx.Hash()
 	if !isValidHash(h, tx.Difficulty) {
+		log.Println(hex.EncodeToString(tx.Hash()), tx.Difficulty)
 		return errors.New("tx hash doesn't not match difficulty")
 	}
 	for _, i := range tx.Inputs {
@@ -330,6 +332,7 @@ func (tx *Transaction) CheckAll(getTX GetTXFunc, verify VerifyFunc,
 //BytesForSign returns byte slice for  signinig
 func (tx *Transaction) BytesForSign() []byte {
 	bd2 := *(tx.Body)
+	bd2.Gnonce = 0
 	bd2.Nonce = make([]uint32, cuckoo.ProofSize)
 	return bd2.Pack()
 }

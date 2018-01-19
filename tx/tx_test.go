@@ -24,8 +24,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"runtime"
 	"testing"
 	"time"
+
+	"github.com/AidosKuneen/numcpu"
 
 	"github.com/AidosKuneen/aklib"
 	"github.com/AidosKuneen/aklib/address"
@@ -35,6 +38,7 @@ import (
 var tx = &Transaction{
 	Body: &Body{
 		Type:    txType,
+		Gnonce:  0,
 		Nonce:   make([]uint32, cuckoo.ProofSize),
 		Time:    uint32(time.Now().Unix()),
 		Message: []byte("This is a test for a transaction."),
@@ -405,25 +409,47 @@ func TestTX4(t *testing.T) {
 	tx.Nonce = make([]uint32, cuckoo.ProofSize)
 }
 
-func BenchmarkPoW(b *testing.B) {
+func TestPoWMain0(t *testing.T) {
+	n := numcpu.NumCPU()
+	p := runtime.GOMAXPROCS(n)
 	tx.Difficulty = aklib.MainConfig.Difficulty
-	for i := 0; i < b.N; i++ {
-		b.StopTimer()
-		for i := range tx.Nonce {
-			tx.Nonce[i] = 0
-		}
-		b.StartTimer()
-		if err := tx.PoW(); err != nil {
-			b.Error(err)
-		}
-		if err := tx.Check(aklib.MainConfig); err != nil {
-			b.Error(err)
-		}
+	tx.Time = 0
+	for i := range tx.Nonce {
+		tx.Nonce[i] = 0
 	}
-	b.Log(hex.EncodeToString(tx.Hash()))
-	b.Log(tx.Nonce)
+	if err := tx.PoW(); err != nil {
+		t.Error(err)
+	}
+	if err := tx.Check(aklib.MainConfig); err != nil {
+		t.Error(err)
+	}
+	t.Log(hex.EncodeToString(tx.Hash()))
+	t.Log(tx.Nonce)
 	for i := range tx.Nonce {
 		tx.Nonce[i] = 0
 	}
 	tx.Difficulty = 1
+	runtime.GOMAXPROCS(p)
+}
+func TestPoWMainRand(t *testing.T) {
+	n := numcpu.NumCPU()
+	p := runtime.GOMAXPROCS(n)
+	tx.Difficulty = aklib.MainConfig.Difficulty
+	tx.Time = uint32(time.Now().Unix())
+	for i := range tx.Nonce {
+		tx.Nonce[i] = 0
+	}
+	if err := tx.PoW(); err != nil {
+		t.Error(err)
+	}
+	if err := tx.Check(aklib.MainConfig); err != nil {
+		t.Error(err)
+	}
+	t.Log(hex.EncodeToString(tx.Hash()))
+	t.Log(tx.Nonce)
+	for i := range tx.Nonce {
+		tx.Nonce[i] = 0
+	}
+	tx.Difficulty = 1
+	runtime.GOMAXPROCS(p)
 }
