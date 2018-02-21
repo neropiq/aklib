@@ -1,7 +1,9 @@
 language: go
+sudo: required
 
 go:
-  - 1.9
+- 1.x
+
 
 before_install:
 - go get -u github.com/axw/gocov/gocov
