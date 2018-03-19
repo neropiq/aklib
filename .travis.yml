@@ -4,6 +4,12 @@ sudo: required
 go:
 - 1.x
 
+env:
+  - TEST_SUITE="-tags travis"
+  - TEST_SUITE="-run ^TestAddressMA$"
+  - TEST_SUITE="-run ^TestAddressTA$"
+  - TEST_SUITE="-run ^TestNodeMA$"
+  - TEST_SUITE="-run ^TestNodeTA$"
 
 before_install:
 - go get -u github.com/axw/gocov/gocov
@@ -15,11 +21,12 @@ before_install:
 - go generate -x ./...
 
 script:
-- travis_wait 30 go test ./... -tags travis -v  -timeout 100m
-- travis_wait 30 go test ./... -run ^TestAddressMA$ -v  -timeout 100m
-- travis_wait 30 go test ./... -run ^TestAddressTA$ -v  -timeout 100m
-- travis_wait 30 go test ./... -run ^TestNodeMA$ -v  -timeout 100m
-- travis_wait 30 go test ./... -run ^TestNodeTA$ -v  -timeout 100m
+- travis_wait 30 go test ./... ${TEST_SUITE} -v  -timeout 100m
+# - travis_wait 30 go test ./... -tags travis -v  -timeout 100m
+# - travis_wait 30 go test ./... -run ^TestAddressMA$ -v  -timeout 100m
+# - travis_wait 30 go test ./... -run ^TestAddressTA$ -v  -timeout 100m
+# - travis_wait 30 go test ./... -run ^TestNodeMA$ -v  -timeout 100m
+# - travis_wait 30 go test ./... -run ^TestNodeTA$ -v  -timeout 100m
 
 after_success:
 - gometalinter -e bindata --deadline=1000s ./...
