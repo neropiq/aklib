@@ -28,8 +28,14 @@ import (
 )
 
 func TestAddressMA(t *testing.T) {
-	testAddress(t, aklib.MainConfig, "AKPRIVMA", "AKADRSMA", Height20)
+	testAddress(t, aklib.MainConfig, "AKPRIVMA", "AKADRSMA", Height20, false)
 }
 func TestAddressTA(t *testing.T) {
-	testAddress(t, aklib.TestConfig, "AKPRIVTA", "AKADRSTA", Height20)
+	testAddress(t, aklib.TestConfig, "AKPRIVTA", "AKADRSTA", Height20, false)
+}
+func TestNodeMA(t *testing.T) {
+	testAddress(t, aklib.MainConfig, "AKNKEYMA", "AKNODEMA", Height20, true)
+}
+func TestNodeTA(t *testing.T) {
+	testAddress(t, aklib.TestConfig, "AKNKEYTA", "AKNODETA", Height20, true)
 }

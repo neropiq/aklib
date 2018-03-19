@@ -68,7 +68,7 @@ func BenchmarkBase58ASeed(b *testing.B) {
 				ef := encode58(from)
 				et := encode58(to)
 				if ef[0] == et[0] && ef[1] == et[1] && ef[2] == et[2] {
-					if ef[0] == 'V' {
+					if ef[0] == 'Y' {
 						if ef[1] == 'T' || ef[1] == 'M' {
 							if ef[2] == '1' || ef[2] == '5' || ef[2] == '8' || ef[2] == 'A' {
 								fmt.Printf("%x %x %x:%s %s\n", i, k, j, ef, et)
@@ -99,7 +99,7 @@ func BenchmarkBase58AAddr(b *testing.B) {
 				ef := encode58(from)
 				et := encode58(to)
 				if ef[0] == et[0] && ef[1] == et[1] && ef[2] == et[2] {
-					if ef[0] == 'S' {
+					if ef[0] == 'E' {
 						if ef[1] == 'T' || ef[1] == 'M' {
 							if ef[2] == '1' || ef[2] == '5' || ef[2] == '8' || ef[2] == 'A' {
 								fmt.Printf("%x %x %x:%s %s\n", i, k, j, ef, et)

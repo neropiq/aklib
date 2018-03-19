@@ -29,22 +29,38 @@ import (
 )
 
 func TestAddress1(t *testing.T) {
-	testAddress(t, aklib.MainConfig, "AKPRIVM1", "AKADRSM1", Height2)
-	testAddress(t, aklib.TestConfig, "AKPRIVT1", "AKADRST1", Height2)
+	testAddress(t, aklib.MainConfig, "AKPRIVM1", "AKADRSM1", Height2, false)
+	testAddress(t, aklib.TestConfig, "AKPRIVT1", "AKADRST1", Height2, false)
 }
 
 func TestAddress5(t *testing.T) {
-	testAddress(t, aklib.MainConfig, "AKPRIVM5", "AKADRSM5", Height10)
-	testAddress(t, aklib.TestConfig, "AKPRIVT5", "AKADRST5", Height10)
+	testAddress(t, aklib.MainConfig, "AKPRIVM5", "AKADRSM5", Height10, false)
+	testAddress(t, aklib.TestConfig, "AKPRIVT5", "AKADRST5", Height10, false)
 }
 func TestAddressM8(t *testing.T) {
-	testAddress(t, aklib.MainConfig, "AKPRIVM8", "AKADRSM8", Height16)
+	testAddress(t, aklib.MainConfig, "AKPRIVM8", "AKADRSM8", Height16, false)
 }
 func TestAddressT8(t *testing.T) {
-	testAddress(t, aklib.TestConfig, "AKPRIVT8", "AKADRST8", Height16)
+	testAddress(t, aklib.TestConfig, "AKPRIVT8", "AKADRST8", Height16, false)
 }
 
-func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
+func TestNode1(t *testing.T) {
+	testAddress(t, aklib.MainConfig, "AKNKEYM1", "AKNODEM1", Height2, true)
+	testAddress(t, aklib.TestConfig, "AKNKEYT1", "AKNODET1", Height2, true)
+}
+
+func TestNode5(t *testing.T) {
+	testAddress(t, aklib.MainConfig, "AKNKEYM5", "AKNODEM5", Height10, true)
+	testAddress(t, aklib.TestConfig, "AKNKEYT5", "AKNODET5", Height10, true)
+}
+func TestNodeM8(t *testing.T) {
+	testAddress(t, aklib.MainConfig, "AKNKEYM8", "AKNODEM8", Height16, true)
+}
+func TestNodeT8(t *testing.T) {
+	testAddress(t, aklib.TestConfig, "AKNKEYT8", "AKNODET8", Height16, true)
+}
+
+func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte, isNode bool) {
 	pwd1 := make([]byte, 15)
 	if _, err := rand.Read(pwd1); err != nil {
 		panic(err)
@@ -54,7 +70,13 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 		panic(err)
 	}
 	seed := GenerateSeed()
-	a, err := New(h, seed, net)
+	var a *Address
+	var err error
+	if isNode {
+		a, err = newNode(h, seed, net)
+	} else {
+		a, err = New(h, seed, net)
+	}
 	if err != nil {
 		t.Error(err)
 	}

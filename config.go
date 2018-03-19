@@ -25,6 +25,8 @@ type Config struct {
 	Difficulty byte
 	PrefixPriv [][]byte
 	PrefixAdrs [][]byte
+	PrefixNkey [][]byte
+	PrefixNode [][]byte
 }
 
 var (
@@ -43,6 +45,18 @@ var (
 			[]byte{0x26, 0xd2, 0x12}, //"SM8" in base5
 			[]byte{0x26, 0xd2, 0x4d}, //"SMA" in base5
 		},
+		PrefixNkey: [][]byte{
+			[]byte{0x07, 0x56, 0x1f}, //"YM1" in base5
+			[]byte{0x07, 0x56, 0x31}, //"YM5" in base5
+			[]byte{0x07, 0x56, 0x3f}, //"YM8" in base5
+			[]byte{0x07, 0x56, 0x48}, //"YMA" in base5
+		},
+		PrefixNode: [][]byte{
+			[]byte{0x14, 0x70, 0x45}, //"EM1" in base5
+			[]byte{0x14, 0x70, 0xbc}, //"EM5" in base5
+			[]byte{0x14, 0x71, 0x16}, //"EM8" in base5
+			[]byte{0x14, 0x71, 0x51}, //"EMA" in base5
+		},
 	}
 	//TestConfig is a Config for TestNet
 	TestConfig = &Config{
@@ -58,6 +72,18 @@ var (
 			[]byte{0x26, 0xfa, 0x48}, //"ST5" in base5
 			[]byte{0x26, 0xfa, 0xa1}, //"ST8" in base5
 			[]byte{0x26, 0xfa, 0xdd}, //"STA" in base5
+		},
+		PrefixNkey: [][]byte{
+			[]byte{0x07, 0x5c, 0x52}, //"YT1" in base5
+			[]byte{0x07, 0x5c, 0x64}, //"YT5" in base5
+			[]byte{0x07, 0x5c, 0x71}, //"YT8" in base5
+			[]byte{0x07, 0x5c, 0x7b}, //"YTA" in base5
+		},
+		PrefixNode: [][]byte{
+			[]byte{0x14, 0x98, 0xd4}, //"ET1" in base5
+			[]byte{0x14, 0x99, 0x4c}, //"ET5" in base5
+			[]byte{0x14, 0x99, 0xa5}, //"ET8" in base5
+			[]byte{0x14, 0x99, 0xe1}, //"ETA" in base5
 		},
 	}
 )

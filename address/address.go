@@ -34,8 +34,10 @@ import (
 )
 
 var (
-	prefixPrivString = "AKPRI"
 	prefixAdrsString = "AKADR"
+	prefixPrivString = "AKPRI"
+	prefixNodeString = "AKNOD"
+	prefixNkeyString = "AKNKE"
 )
 
 //Height represents height of Merkle Tree for XMSS
@@ -50,9 +52,12 @@ var heights = []uint32{2, 10, 16, 20}
 
 //Address represents an address an assciated Merkle Tree in ADK.
 type Address struct {
-	config *aklib.Config
-	merkle *xmss.Merkle
-	Seed   []byte
+	prefixPriv       []byte
+	prefixPub        []byte
+	prefixPrivString string
+	prefixPubString  string
+	merkle           *xmss.Merkle
+	Seed             []byte
 }
 
 func enc(text []byte, pwd []byte) []byte {
@@ -75,9 +80,35 @@ func New(h byte, seed []byte, config *aklib.Config) (*Address, error) {
 		return nil, errors.New("invalid height")
 	}
 	return &Address{
-		merkle: xmss.NewMerkle(heights[h], seed),
-		Seed:   seed,
-		config: config,
+		merkle:           xmss.NewMerkle(heights[h], seed),
+		Seed:             seed,
+		prefixPriv:       config.PrefixPriv[h],
+		prefixPub:        config.PrefixAdrs[h],
+		prefixPrivString: prefixPrivString,
+		prefixPubString:  prefixAdrsString,
+	}, nil
+}
+
+//NewNode returns Address struct for node ID..
+func NewNode(seed []byte, config *aklib.Config) *Address {
+	adr, err := newNode(Height20, seed, config)
+	if err != nil {
+		panic(err)
+	}
+	return adr
+}
+
+func newNode(h byte, seed []byte, config *aklib.Config) (*Address, error) {
+	if h > Height20 {
+		return nil, errors.New("invalid height")
+	}
+	return &Address{
+		merkle:           xmss.NewMerkle(heights[h], seed),
+		Seed:             seed,
+		prefixPriv:       config.PrefixNkey[h],
+		prefixPub:        config.PrefixNode[h],
+		prefixPrivString: prefixNkeyString,
+		prefixPubString:  prefixNodeString,
 	}, nil
 }
 
@@ -96,15 +127,21 @@ func (a *Address) Seed58(pwd []byte) string {
 	copy(out[len(a.Seed):], hash[0:4])
 	eseed := enc(out, pwd)
 
-	pref := a.config.PrefixPriv[a.Height()]
+	pref := a.prefixPriv
 	s := make([]byte, len(eseed)+len(pref))
 	copy(s, pref)
 	copy(s[len(pref):], eseed)
-	return prefixPrivString + encode58(s)
+	return a.prefixPrivString + encode58(s)
 }
 
 func from58(seed58 string, pwd []byte, cfg *aklib.Config) (byte, []byte, error) {
-	if prefixPrivString != seed58[:len(prefixPrivString)] {
+	var prefix [][]byte
+	switch seed58[:len(prefixPrivString)] {
+	case prefixPrivString:
+		prefix = cfg.PrefixPriv
+	case prefixNkeyString:
+		prefix = cfg.PrefixNkey
+	default:
 		return 0, nil, errors.New("invalid prefix string in seed")
 	}
 	eseed, err := decode58(seed58[len(prefixPrivString):])
@@ -113,7 +150,7 @@ func from58(seed58 string, pwd []byte, cfg *aklib.Config) (byte, []byte, error) 
 	}
 	var height byte
 	for ; height <= Height20; height++ {
-		pref := cfg.PrefixPriv[height]
+		pref := prefix[height]
 		if bytes.Equal(eseed[:len(pref)], pref) {
 			break
 		}
@@ -165,17 +202,23 @@ func (a *Address) Height() byte {
 
 //PK58 returns base58 encoded public key.
 func (a *Address) PK58() string {
-	pref := a.config.PrefixAdrs[a.Height()]
+	pref := a.prefixPub
 	pub := a.merkle.PublicKey()
 	p := make([]byte, len(pub)+len(pref))
 	copy(p, pref)
 	copy(p[len(pref):], pub)
-	return prefixAdrsString + encode58(p)
+	return a.prefixPubString + encode58(p)
 }
 
 //FromPK58 returns decode public key from base58 encoded string.
 func FromPK58(pub58 string, cfg *aklib.Config) ([]byte, error) {
-	if prefixAdrsString != pub58[:len(prefixAdrsString)] {
+	var prefix [][]byte
+	switch pub58[:len(prefixAdrsString)] {
+	case prefixAdrsString:
+		prefix = cfg.PrefixAdrs
+	case prefixNodeString:
+		prefix = cfg.PrefixNode
+	default:
 		return nil, errors.New("invalid prefix string in public key")
 	}
 	pub, err := decode58(pub58[len(prefixAdrsString):])
@@ -184,7 +227,7 @@ func FromPK58(pub58 string, cfg *aklib.Config) ([]byte, error) {
 	}
 	var height byte
 	for ; height <= Height20; height++ {
-		pref := cfg.PrefixAdrs[height]
+		pref := prefix[height]
 		if bytes.Equal(pub[:len(pref)], pref) {
 			break
 		}
@@ -198,13 +241,19 @@ func FromPK58(pub58 string, cfg *aklib.Config) ([]byte, error) {
 //MarshalJSON  marshals Address into valid JSON.
 func (a *Address) MarshalJSON() ([]byte, error) {
 	s := struct {
-		Seed   []byte
-		Merkle *xmss.Merkle
-		Config *aklib.Config
+		Seed             []byte
+		Merkle           *xmss.Merkle
+		PrefixPriv       []byte
+		PrefixPub        []byte
+		PrefixPrivString string
+		PrefixPubString  string
 	}{
-		Seed:   a.Seed,
-		Merkle: a.merkle,
-		Config: a.config,
+		Seed:             a.Seed,
+		Merkle:           a.merkle,
+		PrefixPriv:       a.prefixPriv,
+		PrefixPub:        a.prefixPub,
+		PrefixPrivString: a.prefixPrivString,
+		PrefixPubString:  a.prefixPubString,
 	}
 	return json.Marshal(&s)
 }
@@ -212,14 +261,20 @@ func (a *Address) MarshalJSON() ([]byte, error) {
 //UnmarshalJSON  unmarshals JSON to Address.
 func (a *Address) UnmarshalJSON(b []byte) error {
 	s := struct {
-		Seed   []byte
-		Merkle *xmss.Merkle
-		Config *aklib.Config
+		Seed             []byte
+		Merkle           *xmss.Merkle
+		PrefixPriv       []byte
+		PrefixPub        []byte
+		PrefixPrivString string
+		PrefixPubString  string
 	}{}
 	err := json.Unmarshal(b, &s)
 	a.Seed = s.Seed
 	a.merkle = s.Merkle
-	a.config = s.Config
+	a.prefixPriv = s.PrefixPriv
+	a.prefixPub = s.PrefixPub
+	a.prefixPrivString = s.PrefixPrivString
+	a.prefixPubString = s.PrefixPubString
 	return err
 }
 
