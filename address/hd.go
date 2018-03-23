@@ -33,8 +33,8 @@ func HDseed(seed, masterkey []byte, indices ...uint32) []byte {
 		panic(err)
 	}
 	key := mac.Sum(nil)
-	chain := key[:32]
-	private := key[32:]
+	private := key[:32]
+	chain := key[32:]
 	data := make([]byte, 32+4)
 	for _, index := range indices {
 		mac = hmac.New(sha512.New, chain)
@@ -44,8 +44,8 @@ func HDseed(seed, masterkey []byte, indices ...uint32) []byte {
 			panic(err)
 		}
 		key := mac.Sum(nil)
-		chain = key[:32]
-		private = key[32:]
+		private = key[:32]
+		chain = key[32:]
 	}
 	return private
 }

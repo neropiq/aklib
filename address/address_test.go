@@ -137,10 +137,11 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte, isNo
 	if err != nil {
 		t.Error(err)
 	}
-	c := Address{}
-	if err := json.Unmarshal(b, &c); err != nil {
+	s := States{}
+	if err := json.Unmarshal(b, &s); err != nil {
 		t.Error(err)
 	}
+	c := FromStates(&s)
 	if c.LeafNo() != 1 {
 		t.Error("invalid unmarshal")
 	}
