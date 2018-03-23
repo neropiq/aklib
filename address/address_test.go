@@ -23,6 +23,7 @@ package address
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/json"
 	"testing"
 
 	"github.com/AidosKuneen/aklib"
@@ -131,12 +132,13 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte, isNo
 	if !Verify(sig, msg, pk) {
 		t.Error("signature is invalid")
 	}
-	b, err := a.MarshalJSON()
+	states := a.GetStates()
+	b, err := json.Marshal(states)
 	if err != nil {
 		t.Error(err)
 	}
 	c := Address{}
-	if err := c.UnmarshalJSON(b); err != nil {
+	if err := json.Unmarshal(b, &c); err != nil {
 		t.Error(err)
 	}
 	if c.LeafNo() != 1 {

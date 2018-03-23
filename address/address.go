@@ -25,7 +25,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/json"
 	"errors"
 
 	"github.com/AidosKuneen/aklib"
@@ -238,44 +237,38 @@ func FromPK58(pub58 string, cfg *aklib.Config) ([]byte, error) {
 	return pub[len(cfg.PrefixAdrs[height]):], nil
 }
 
-//MarshalJSON  marshals Address into valid JSON.
-func (a *Address) MarshalJSON() ([]byte, error) {
-	s := struct {
-		Seed             []byte
-		Merkle           *xmss.Merkle
-		PrefixPriv       []byte
-		PrefixPub        []byte
-		PrefixPrivString string
-		PrefixPubString  string
-	}{
+//States is states in Address.
+type States struct {
+	Seed             []byte
+	Merkle           *xmss.States
+	PrefixPriv       []byte
+	PrefixPub        []byte
+	PrefixPrivString string
+	PrefixPubString  string
+}
+
+//GetStates returns states in Address for serialization.
+func (a *Address) GetStates() *States {
+	return &States{
 		Seed:             a.Seed,
-		Merkle:           a.merkle,
+		Merkle:           a.merkle.GetStates(),
 		PrefixPriv:       a.prefixPriv,
 		PrefixPub:        a.prefixPub,
 		PrefixPrivString: a.prefixPrivString,
 		PrefixPubString:  a.prefixPubString,
 	}
-	return json.Marshal(&s)
 }
 
-//UnmarshalJSON  unmarshals JSON to Address.
-func (a *Address) UnmarshalJSON(b []byte) error {
-	s := struct {
-		Seed             []byte
-		Merkle           *xmss.Merkle
-		PrefixPriv       []byte
-		PrefixPub        []byte
-		PrefixPrivString string
-		PrefixPubString  string
-	}{}
-	err := json.Unmarshal(b, &s)
-	a.Seed = s.Seed
-	a.merkle = s.Merkle
-	a.prefixPriv = s.PrefixPriv
-	a.prefixPub = s.PrefixPub
-	a.prefixPrivString = s.PrefixPrivString
-	a.prefixPubString = s.PrefixPubString
-	return err
+//FromStates return an Address from States s..
+func FromStates(s *States) *Address {
+	return &Address{
+		Seed:             s.Seed,
+		merkle:           xmss.FromStates(s.Merkle),
+		prefixPriv:       s.PrefixPriv,
+		prefixPub:        s.PrefixPub,
+		prefixPrivString: s.PrefixPrivString,
+		prefixPubString:  s.PrefixPubString,
+	}
 }
 
 //LeafNo returns leaf number we will use next.
