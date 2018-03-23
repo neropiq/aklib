@@ -22,7 +22,7 @@ package aklib
 
 //Config is settings for various parameters.
 type Config struct {
-	Difficulty byte
+	Easiness   byte
 	PrefixPriv [][]byte
 	PrefixAdrs [][]byte
 	PrefixNkey [][]byte
@@ -32,7 +32,7 @@ type Config struct {
 var (
 	//MainConfig is a Config for MainNet
 	MainConfig = &Config{
-		Difficulty: 4,
+		Easiness: 0x0f,
 		PrefixPriv: [][]byte{
 			[]byte{0x06, 0xa2, 0x5e}, //"VM1" in base5
 			[]byte{0x06, 0xa2, 0x71}, //"VM5" in base5
@@ -60,7 +60,7 @@ var (
 	}
 	//TestConfig is a Config for TestNet
 	TestConfig = &Config{
-		Difficulty: 1,
+		Easiness: 0xef,
 		PrefixPriv: [][]byte{
 			[]byte{0x06, 0xa8, 0x91}, //"VT1" in base5
 			[]byte{0x06, 0xa8, 0xa3}, //"VT5" in base5

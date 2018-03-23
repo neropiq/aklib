@@ -80,17 +80,17 @@ type MultiSig struct {
 
 //Body is a Transactoin except signature.
 type Body struct {
-	Type       []byte      //4 bytes
-	Gnonce     uint32      //4 bytes
-	Nonce      []uint32    //20*VarInt
-	Time       uint32      //4 bytes
-	Message    []byte      //<255 bytes
-	Inputs     []*Input    //<33 * 32 = 1056 bytes
-	Outputs    []*Output   //<40 * 32 = 1280 bytes
-	MultiSigs  []*MultiSig //<1032 * 4 = 4128 bytes
-	Previous   [][]byte    //<8*32=256 bytes
-	Difficulty byte        //1 byte //not used for now
-	LockTime   uint32      // 4 bytes
+	Type      []byte      //4 bytes
+	Gnonce    uint32      //4 bytes
+	Nonce     []uint32    //20*VarInt
+	Time      uint32      //4 bytes
+	Message   []byte      //<255 bytes
+	Inputs    []*Input    //<33 * 32 = 1056 bytes
+	Outputs   []*Output   //<40 * 32 = 1280 bytes
+	MultiSigs []*MultiSig //<1032 * 4 = 4128 bytes
+	Previous  [][]byte    //<8*32=256 bytes
+	Easiness  byte        //1 byte //not used for now
+	LockTime  uint32      // 4 bytes
 }
 
 //Signatures is a signature  part of Transaction.
@@ -106,8 +106,8 @@ type Transaction struct {
 func New(cfg *aklib.Config) *Transaction {
 	tx := &Transaction{
 		Body: &Body{
-			Type:       txType,
-			Difficulty: cfg.Difficulty,
+			Type:     txType,
+			Easiness: cfg.Easiness,
 		},
 	}
 	return tx
@@ -185,8 +185,8 @@ func (tx *Transaction) Check(cfg *aklib.Config) error {
 			return fmt.Errorf("tx hash size at previous tx %d must be 32 bytes", n)
 		}
 	}
-	if tx.Difficulty < cfg.Difficulty {
-		return fmt.Errorf("difficulty must be %d", cfg.Difficulty)
+	if tx.Easiness > cfg.Easiness {
+		return fmt.Errorf("Easiness must be %d", cfg.Easiness)
 	}
 	if tx.LockTime != 0 && time.Unix(int64(tx.LockTime), 0).After(time.Now()) {
 		return errors.New("this tx is not unlocked yet")
@@ -202,36 +202,25 @@ func (tx *Transaction) Check(cfg *aklib.Config) error {
 }
 
 //isValidHash reteurns true if  hash bytes h meets difficulty.
-func isValidHash(h []byte, dif byte) bool {
-	var i byte
-	for i = 0; i < dif>>3; i++ {
-		if h[31-i] != 0x00 {
-			return false
-		}
-	}
-	d := dif - (i << 3)
-	if d == 0 {
-		return true
-	}
-	b := (1 << (8 - d)) - 1
-	return !(h[31-i] > byte(b))
+func isValidHash(h []byte, e byte) bool {
+	return h[len(h)-1] <= e
 }
 
 //hasValidHashes reteurns true if  hashes in tx and tx hash  meets difficulty.
 func (tx *Transaction) hasValidHashes(cfg *aklib.Config) error {
 	h := tx.Hash()
-	if !isValidHash(h, tx.Difficulty) {
-		log.Println(hex.EncodeToString(tx.Hash()), tx.Difficulty)
-		return errors.New("tx hash doesn't not match difficulty")
+	if !isValidHash(h, tx.Easiness) {
+		log.Println(hex.EncodeToString(tx.Hash()), tx.Easiness)
+		return errors.New("tx hash doesn't not match easiness")
 	}
 	for _, i := range tx.Inputs {
-		if !isValidHash(i.PreviousTX, cfg.Difficulty) {
-			return errors.New("inputs txs' hash doesn't not match difficulty")
+		if !isValidHash(i.PreviousTX, cfg.Easiness) {
+			return errors.New("inputs txs' hash doesn't not match easiness")
 		}
 	}
 	for _, p := range tx.Previous {
-		if !isValidHash(p, cfg.Difficulty) {
-			return errors.New("previous txs' hash doesn't not match difficulty")
+		if !isValidHash(p, cfg.Easiness) {
+			return errors.New("previous txs' hash doesn't not match easiness")
 		}
 	}
 	return nil

@@ -87,8 +87,8 @@ var tx = &Transaction{
 			make([]byte, 32),
 			make([]byte, 32),
 		},
-		Difficulty: aklib.TestConfig.Difficulty,
-		LockTime:   0,
+		Easiness: aklib.TestConfig.Easiness,
+		LockTime: 0,
 	},
 	Signatures: [][]byte{
 		make([]byte, 32),
@@ -100,37 +100,13 @@ var tx = &Transaction{
 func TestValidHashTX(t *testing.T) {
 	h := make([]byte, 32)
 	h[31] = 0x1f
-	if isValidHash(h, 4) {
+	if !isValidHash(h, 0x1f) {
 		t.Error("isValidHash is incorrect")
 	}
-	h[31] = 0x0f
-	if !isValidHash(h, 4) {
+	if isValidHash(h, 0x1e) {
 		t.Error("isValidHash is incorrect")
 	}
-	h[31] = 0
-	h[30] = 0xff
-	if !isValidHash(h, 8) {
-		t.Error("isValidHash is incorrect")
-	}
-	h[31] = 0xff
-	if isValidHash(h, 8) {
-		t.Error("isValidHash is incorrect")
-	}
-	h[31] = 0x07
-	if !isValidHash(h, 5) {
-		t.Error("isValidHash is incorrect")
-	}
-	h[31] = 0x10
-	if isValidHash(h, 5) {
-		t.Error("isValidHash is incorrect")
-	}
-	h[31] = 0x00
-	h[30] = 0x07
-	if !isValidHash(h, 13) {
-		t.Error("isValidHash is incorrect")
-	}
-	h[30] = 0x10
-	if isValidHash(h, 13) {
+	if !isValidHash(h, 0x20) {
 		t.Error("isValidHash is incorrect")
 	}
 }
@@ -412,7 +388,7 @@ func TestTX4(t *testing.T) {
 func TestPoWMain0(t *testing.T) {
 	n := numcpu.NumCPU()
 	p := runtime.GOMAXPROCS(n)
-	tx.Difficulty = aklib.MainConfig.Difficulty
+	tx.Easiness = aklib.MainConfig.Easiness
 	tx.Time = 0
 	for i := range tx.Nonce {
 		tx.Nonce[i] = 0
@@ -428,13 +404,13 @@ func TestPoWMain0(t *testing.T) {
 	for i := range tx.Nonce {
 		tx.Nonce[i] = 0
 	}
-	tx.Difficulty = 1
+	tx.Easiness = aklib.TestConfig.Easiness
 	runtime.GOMAXPROCS(p)
 }
 func TestPoWMainRand(t *testing.T) {
 	n := numcpu.NumCPU()
 	p := runtime.GOMAXPROCS(n)
-	tx.Difficulty = aklib.MainConfig.Difficulty
+	tx.Easiness = aklib.MainConfig.Easiness
 	tx.Time = uint32(time.Now().Unix())
 	for i := range tx.Nonce {
 		tx.Nonce[i] = 0
@@ -450,6 +426,6 @@ func TestPoWMainRand(t *testing.T) {
 	for i := range tx.Nonce {
 		tx.Nonce[i] = 0
 	}
-	tx.Difficulty = 1
+	tx.Easiness = aklib.TestConfig.Easiness
 	runtime.GOMAXPROCS(p)
 }

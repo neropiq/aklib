@@ -139,7 +139,7 @@ func (bd *Body) Pack() []byte {
 	for _, a := range bd.Previous {
 		b = append(b, a...)
 	}
-	b = append(b, bd.Difficulty)
+	b = append(b, bd.Easiness)
 	b = appendVarint(b, bd.LockTime)
 
 	//for avoiding extra space of heap
@@ -323,7 +323,7 @@ func UnpackBody(dat []byte) (*Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	bd.Difficulty, err = buf.ReadByte()
+	bd.Easiness, err = buf.ReadByte()
 	if err != nil {
 		return nil, err
 	}

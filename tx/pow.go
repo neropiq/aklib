@@ -39,7 +39,7 @@ func (tx *Transaction) PoW() error {
 		if found {
 			tx.Nonce = nonces
 			txh := tx.Hash()
-			if isValidHash(txh, tx.Difficulty) {
+			if isValidHash(txh, tx.Easiness) {
 				break
 			}
 		}
