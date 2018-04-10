@@ -20,320 +20,46 @@
 
 package tx
 
-import (
-	"bytes"
-	"encoding/binary"
-	"errors"
-	"io"
-)
+import "github.com/vmihailenco/msgpack"
 
-//byte2Varint converts VarInt of Bitcoin to uint64.
-func byte2Varint(dat *bytes.Buffer) (uint64, error) {
-	var err error
-	var bb byte
-	if bb, err = dat.ReadByte(); err != nil {
-		return 0, err
-	}
-	switch bb {
-	case 0xfd:
-		bs := make([]byte, 2)
-		if _, err := dat.Read(bs); err != nil {
-			return 0, err
-		}
-		v := binary.BigEndian.Uint16(bs)
-		return uint64(v), nil
-	case 0xfe:
-		bs := make([]byte, 4)
-		if _, err := dat.Read(bs); err != nil {
-			return 0, err
-		}
-		v := binary.BigEndian.Uint32(bs)
-		return uint64(v), nil
-	case 0xff:
-		bs := make([]byte, 8)
-		if _, err := dat.Read(bs); err != nil {
-			return 0, err
-		}
-		v := binary.BigEndian.Uint64(bs)
-		return v, nil
-
-	default:
-		return uint64(bb), nil
-	}
-}
-
-//int2Varint converts  uint64 to VarInt of Bitcoin.
-func int2Varint(dat uint64) []byte {
-	var b []byte
-	switch {
-	case dat < uint64(0xfd):
-		b = make([]byte, 1)
-		b[0] = byte(dat & 0xff)
-	case dat <= uint64(0xffff):
-		b = make([]byte, 3)
-		b[0] = 0xfd
-		binary.BigEndian.PutUint16(b[1:], uint16(dat))
-	case dat <= uint64(0xffffffff):
-		b = make([]byte, 5)
-		b[0] = 0xfe
-		binary.BigEndian.PutUint32(b[1:], uint32(dat))
-	default:
-		b = make([]byte, 9)
-		b[0] = 0xff
-		binary.BigEndian.PutUint64(b[1:], dat)
-	}
-	return b
-}
-
-func appendVarint(b []byte, v interface{}) []byte {
-	var val uint64
-	switch l := v.(type) {
-	case int:
-		val = uint64(l)
-	case uint16:
-		val = uint64(l)
-	case uint32:
-		val = uint64(l)
-	case uint64:
-		val = l
-	default:
-		panic("v must be integer")
-	}
-	t := int2Varint(val)
-	return append(b, t...)
-}
-
-//Pack return bytes slice of a transaction body.
-func (bd *Body) Pack() []byte {
-	b := make([]byte, 0, TransactionMax)
-
-	b = append(b, bd.Type...)
-	b = appendVarint(b, bd.Gnonce)
-	b = appendVarint(b, len(bd.Nonce))
-	for _, n := range bd.Nonce {
-		b = appendVarint(b, n)
-	}
-	b = appendVarint(b, bd.Time)
-	b = appendVarint(b, len(bd.Message))
-	b = append(b, bd.Message...)
-	b = appendVarint(b, len(bd.Inputs))
-	for _, inp := range bd.Inputs {
-		b = append(b, inp.PreviousTX...)
-		b = append(b, inp.Index)
-	}
-	b = appendVarint(b, len(bd.Outputs))
-	for _, out := range bd.Outputs {
-		b = append(b, out.Address...)
-		b = appendVarint(b, out.Value)
-	}
-	b = appendVarint(b, len(bd.MultiSigs))
-	for _, mul := range bd.MultiSigs {
-		b = append(b, mul.N)
-		b = appendVarint(b, len(mul.Addresses))
-		for _, a := range mul.Addresses {
-			b = append(b, a...)
-		}
-		b = appendVarint(b, mul.Value)
-	}
-	b = appendVarint(b, len(bd.Previous))
-	for _, a := range bd.Previous {
-		b = append(b, a...)
-	}
-	b = append(b, bd.Easiness)
-	b = appendVarint(b, bd.LockTime)
-
-	//for avoiding extra space of heap
-	bb := make([]byte, len(b))
-	copy(bb, b)
-	return bb
-}
-
-//Pack return bytes slice of a transaction signature..
-func (sig Signatures) Pack() []byte {
-	b := make([]byte, 0, TransactionMax)
-	b = appendVarint(b, len(sig))
-	for _, s := range sig {
-		b = appendVarint(b, len(s))
-		b = append(b, s...)
-	}
-
-	//for avoiding extra space of heap
-	bb := make([]byte, len(b))
-	copy(bb, b)
-	return bb
-}
-
-//Pack returns byte slice of tx.
+//Pack returns tx in msgpack format.
 func (tx *Transaction) Pack() []byte {
-	b1 := tx.Body.Pack()
-	b2 := tx.Signatures.Pack()
-	b := make([]byte, len(b1)+len(b2))
-	copy(b, b1)
-	copy(b[len(b1):], b2)
-	return b
-}
-
-//UnpackSignature return a transaction signature from byte slice.
-func UnpackSignature(dat []byte) (Signatures, error) {
-	buf := bytes.NewBuffer(dat)
-	n, err := byte2Varint(buf)
+	bd, err := msgpack.Marshal(tx)
 	if err != nil {
-		return nil, err
-	}
-	ary := make(Signatures, n)
-	for i := range ary {
-		n, err := byte2Varint(buf)
-		if err != nil {
-			return nil, err
-		}
-		ary[i] = make([]byte, n)
-		if _, err := buf.Read(ary[i]); err != nil {
-			return nil, err
-		}
-	}
-	if buf.Len() != 0 {
-		return nil, errors.New("invalid data length")
-	}
-	return ary, nil
-}
-
-func unpackByteSlice2(buf *bytes.Buffer) ([][]byte, error) {
-	n, err := byte2Varint(buf)
-	if err != nil {
-		return nil, err
-	}
-	ary := make([][]byte, n)
-	for i := range ary {
-		ary[i] = make([]byte, 32)
-		if _, err := buf.Read(ary[i]); err != nil {
-			return nil, err
-		}
-	}
-	return ary, nil
-}
-func unpackByte32(buf io.Reader) []byte {
-	ary := make([]byte, 32)
-	if _, err := buf.Read(ary); err != nil {
 		panic(err)
 	}
-	return ary
-}
-func unpackByteSlice(buf *bytes.Buffer) ([]byte, error) {
-	n, err := byte2Varint(buf)
-	if err != nil {
-		return nil, err
-	}
-	ary := make([]byte, n)
-	if _, err := buf.Read(ary); err != nil {
-		return nil, err
-	}
-	return ary, nil
+	return bd
 }
 
-//UnpackBody return a transaction bodyfrom byte slice.
-func UnpackBody(dat []byte) (*Body, error) {
-	var err error
-	if len(dat) < 36 {
-		return nil, errors.New("dat is too short")
-	}
-	bd := &Body{}
-	bd.Type = make([]byte, 4)
-	copy(bd.Type, dat)
-	buf := bytes.NewBuffer(dat[4:])
-	gnonce, err := byte2Varint(buf)
+//Pack returns tx body in msgpack format.
+func (body *Body) Pack() []byte {
+	bd, err := msgpack.Marshal(body)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	bd.Gnonce = uint32(gnonce)
-	n, err := byte2Varint(buf)
-	if err != nil {
-		return nil, err
-	}
-	bd.Nonce = make([]uint32, n)
-	for i := range bd.Nonce {
-		non, errr := byte2Varint(buf)
-		if errr != nil {
-			return nil, err
-		}
-		bd.Nonce[i] = uint32(non)
-	}
-	tim, err := byte2Varint(buf)
-	if err != nil {
-		return nil, err
-	}
-	bd.Time = uint32(tim)
-	bd.Message, err = unpackByteSlice(buf)
-	if err != nil {
-		return nil, err
-	}
-	n, err = byte2Varint(buf)
-	if err != nil {
-		return nil, err
-	}
-	bd.Inputs = make([]*Input, n)
-	for i := range bd.Inputs {
-		in := &Input{
-			PreviousTX: unpackByte32(buf),
-		}
-		in.Index, err = buf.ReadByte()
-		if err != nil {
-			return nil, err
-		}
-		bd.Inputs[i] = in
-	}
+	return bd
+}
 
-	n, err = byte2Varint(buf)
+//Pack returns tx bSignaturesody in msgpack format.
+func (sig *Signatures) Pack() []byte {
+	bd, err := msgpack.Marshal(sig)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	bd.Outputs = make([]*Output, n)
-	for i := range bd.Outputs {
-		out := &Output{
-			Address: unpackByte32(buf),
-		}
-		out.Value, err = byte2Varint(buf)
-		if err != nil {
-			return nil, err
-		}
-		bd.Outputs[i] = out
-	}
+	return bd
+}
 
-	n, err = byte2Varint(buf)
-	if err != nil {
-		return nil, err
-	}
-	bd.MultiSigs = make([]*MultiSig, n)
-	for i := range bd.MultiSigs {
-		mul := &MultiSig{}
-		mul.N, err = buf.ReadByte()
-		if err != nil {
-			return nil, err
-		}
-		mul.Addresses, err = unpackByteSlice2(buf)
-		if err != nil {
-			return nil, err
-		}
-		mul.Value, err = byte2Varint(buf)
-		if err != nil {
-			return nil, err
-		}
-		bd.MultiSigs[i] = mul
-	}
-	bd.Previous, err = unpackByteSlice2(buf)
-	if err != nil {
-		return nil, err
-	}
-	bd.Easiness, err = buf.ReadByte()
-	if err != nil {
-		return nil, err
-	}
-	lt, err := byte2Varint(buf)
-	if err != nil {
-		return nil, err
-	}
-	bd.LockTime = uint32(lt)
-	if buf.Len() != 0 {
-		return nil, errors.New("invalid data length")
-	}
-	return bd, nil
+//Unpack returns tx from msgpack bin data.
+func (tx *Transaction) Unpack(dat []byte) error {
+	return msgpack.Unmarshal(dat, tx)
+}
+
+//Unpack returns tx from msgpack bin data.
+func (body *Body) Unpack(dat []byte) error {
+	return msgpack.Unmarshal(dat, body)
+}
+
+//Unpack returns tx from msgpack bin data.
+func (sig *Signatures) Unpack(dat []byte) error {
+	return msgpack.Unmarshal(dat, sig)
 }

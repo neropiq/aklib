@@ -25,11 +25,13 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 
 	"github.com/AidosKuneen/aklib"
 	sha256 "github.com/AidosKuneen/sha256-simd"
 	"github.com/AidosKuneen/xmss"
+	"github.com/vmihailenco/msgpack"
 )
 
 var (
@@ -237,21 +239,19 @@ func FromPK58(pub58 string, cfg *aklib.Config) ([]byte, error) {
 	return pub[len(cfg.PrefixAdrs[height]):], nil
 }
 
-//States is states in Address.
-type States struct {
+type address struct {
 	Seed             []byte
-	Merkle           *xmss.States
+	Merkle           *xmss.Merkle
 	PrefixPriv       []byte
 	PrefixPub        []byte
 	PrefixPrivString string
 	PrefixPubString  string
 }
 
-//GetStates returns states in Address for serialization.
-func (a *Address) GetStates() *States {
-	return &States{
+func (a *Address) exports() *address {
+	return &address{
 		Seed:             a.Seed,
-		Merkle:           a.merkle.GetStates(),
+		Merkle:           a.merkle,
 		PrefixPriv:       a.prefixPriv,
 		PrefixPub:        a.prefixPub,
 		PrefixPrivString: a.prefixPrivString,
@@ -259,16 +259,43 @@ func (a *Address) GetStates() *States {
 	}
 }
 
-//FromStates return an Address from States s..
-func FromStates(s *States) *Address {
-	return &Address{
-		Seed:             s.Seed,
-		merkle:           xmss.FromStates(s.Merkle),
-		prefixPriv:       s.PrefixPriv,
-		prefixPub:        s.PrefixPub,
-		prefixPrivString: s.PrefixPrivString,
-		prefixPubString:  s.PrefixPubString,
+func (a *Address) imports(s *address) {
+	a.Seed = s.Seed
+	a.merkle = s.Merkle
+	a.prefixPriv = s.PrefixPriv
+	a.prefixPub = s.PrefixPub
+	a.prefixPrivString = s.PrefixPrivString
+	a.prefixPubString = s.PrefixPubString
+}
+
+//MarshalJSON  marshals Merkle into valid JSON.
+func (a *Address) MarshalJSON() ([]byte, error) {
+	return json.Marshal(a.exports())
+}
+
+//UnmarshalJSON  unmarshals JSON to Merkle.
+func (a *Address) UnmarshalJSON(b []byte) error {
+	var s address
+	err := json.Unmarshal(b, &s)
+	if err == nil {
+		a.imports(&s)
 	}
+	return err
+}
+
+//EncodeMsgpack  marshals Address into valid JSON.
+func (a *Address) EncodeMsgpack(enc *msgpack.Encoder) error {
+	return enc.Encode(a.exports())
+}
+
+//DecodeMsgpack  unmarshals JSON to Address.
+func (a *Address) DecodeMsgpack(dec *msgpack.Decoder) error {
+	var s address
+	err := dec.Decode(&s)
+	if err == nil {
+		a.imports(&s)
+	}
+	return err
 }
 
 //LeafNo returns leaf number we will use next.

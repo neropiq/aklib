@@ -27,6 +27,7 @@ import (
 	"testing"
 
 	"github.com/AidosKuneen/aklib"
+	"github.com/vmihailenco/msgpack"
 )
 
 func TestAddress1(t *testing.T) {
@@ -132,16 +133,15 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte, isNo
 	if !Verify(sig, msg, pk) {
 		t.Error("signature is invalid")
 	}
-	states := a.GetStates()
-	b, err := json.Marshal(states)
+
+	b, err := json.Marshal(a)
 	if err != nil {
 		t.Error(err)
 	}
-	s := States{}
-	if err := json.Unmarshal(b, &s); err != nil {
+	var c Address
+	if err := json.Unmarshal(b, &c); err != nil {
 		t.Error(err)
 	}
-	c := FromStates(&s)
 	if c.LeafNo() != 1 {
 		t.Error("invalid unmarshal")
 	}
@@ -149,6 +149,23 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte, isNo
 	if !Verify(sig, msg, pk) {
 		t.Error("signature is invalid")
 	}
+
+	mb, err := msgpack.Marshal(a)
+	if err != nil {
+		t.Error(err)
+	}
+	var mc Address
+	if err := msgpack.Unmarshal(mb, &mc); err != nil {
+		t.Error(err)
+	}
+	if mc.LeafNo() != 1 {
+		t.Error("invalid unmarshal")
+	}
+	sig = mc.Sign(msg)
+	if !Verify(sig, msg, pk) {
+		t.Error("signature is invalid")
+	}
+
 }
 
 func TestAddress2(t *testing.T) {

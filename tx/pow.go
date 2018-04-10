@@ -24,7 +24,6 @@ import (
 	"errors"
 
 	"github.com/AidosKuneen/cuckoo"
-	sha256 "github.com/AidosKuneen/sha256-simd"
 )
 
 const maxcnt = 5000
@@ -33,9 +32,8 @@ const maxcnt = 5000
 func (tx *Transaction) PoW() error {
 	cu := cuckoo.NewCuckoo()
 	for tx.Gnonce = 0; tx.Gnonce < maxcnt; tx.Gnonce++ {
-		bs := tx.bytesForPoW()
-		hs := sha256.Sum256(bs)
-		nonces, found := cu.PoW(hs[:])
+		hs := tx.hashForPoW()
+		nonces, found := cu.PoW(hs)
 		if found {
 			tx.Nonce = nonces
 			txh := tx.Hash()
