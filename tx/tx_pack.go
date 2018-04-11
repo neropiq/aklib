@@ -27,34 +27,28 @@ import (
 	"github.com/vmihailenco/msgpack"
 )
 
-//Pack returns tx in msgpack format.
-func (tx *Transaction) Pack() []byte {
+func pack(dat interface{}) []byte {
 	var buf bytes.Buffer
 	enc := msgpack.NewEncoder(&buf).StructAsArray(true)
-	if err := enc.Encode(tx); err != nil {
+	if err := enc.Encode(dat); err != nil {
 		log.Fatal(err)
 	}
 	return buf.Bytes()
+}
+
+//Pack returns tx in msgpack format.
+func (tx *Transaction) Pack() []byte {
+	return pack(tx)
 }
 
 //Pack returns tx body in msgpack format.
 func (body *Body) Pack() []byte {
-	var buf bytes.Buffer
-	enc := msgpack.NewEncoder(&buf).StructAsArray(true)
-	if err := enc.Encode(body); err != nil {
-		log.Fatal(err)
-	}
-	return buf.Bytes()
+	return pack(body)
 }
 
 //Pack returns tx bSignaturesody in msgpack format.
 func (sig *Signatures) Pack() []byte {
-	var buf bytes.Buffer
-	enc := msgpack.NewEncoder(&buf).StructAsArray(true)
-	if err := enc.Encode(sig); err != nil {
-		log.Fatal(err)
-	}
-	return buf.Bytes()
+	return pack(sig)
 }
 
 //Unpack returns tx from msgpack bin data.
