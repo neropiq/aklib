@@ -20,46 +20,60 @@
 
 package tx
 
-import "github.com/vmihailenco/msgpack"
+import (
+	"bytes"
+	"log"
+
+	"github.com/vmihailenco/msgpack"
+)
 
 //Pack returns tx in msgpack format.
 func (tx *Transaction) Pack() []byte {
-	bd, err := msgpack.Marshal(tx)
-	if err != nil {
-		panic(err)
+	var buf bytes.Buffer
+	enc := msgpack.NewEncoder(&buf).StructAsArray(true)
+	if err := enc.Encode(tx); err != nil {
+		log.Fatal(err)
 	}
-	return bd
+	return buf.Bytes()
 }
 
 //Pack returns tx body in msgpack format.
 func (body *Body) Pack() []byte {
-	bd, err := msgpack.Marshal(body)
-	if err != nil {
-		panic(err)
+	var buf bytes.Buffer
+	enc := msgpack.NewEncoder(&buf).StructAsArray(true)
+	if err := enc.Encode(body); err != nil {
+		log.Fatal(err)
 	}
-	return bd
+	return buf.Bytes()
 }
 
 //Pack returns tx bSignaturesody in msgpack format.
 func (sig *Signatures) Pack() []byte {
-	bd, err := msgpack.Marshal(sig)
-	if err != nil {
-		panic(err)
+	var buf bytes.Buffer
+	enc := msgpack.NewEncoder(&buf).StructAsArray(true)
+	if err := enc.Encode(sig); err != nil {
+		log.Fatal(err)
 	}
-	return bd
+	return buf.Bytes()
 }
 
 //Unpack returns tx from msgpack bin data.
 func (tx *Transaction) Unpack(dat []byte) error {
-	return msgpack.Unmarshal(dat, tx)
+	buf := bytes.NewBuffer(dat)
+	dec := msgpack.NewDecoder(buf)
+	return dec.Decode(tx)
 }
 
 //Unpack returns tx from msgpack bin data.
 func (body *Body) Unpack(dat []byte) error {
-	return msgpack.Unmarshal(dat, body)
+	buf := bytes.NewBuffer(dat)
+	dec := msgpack.NewDecoder(buf)
+	return dec.Decode(body)
 }
 
 //Unpack returns tx from msgpack bin data.
 func (sig *Signatures) Unpack(dat []byte) error {
-	return msgpack.Unmarshal(dat, sig)
+	buf := bytes.NewBuffer(dat)
+	dec := msgpack.NewDecoder(buf)
+	return dec.Decode(sig)
 }
