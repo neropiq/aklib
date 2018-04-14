@@ -34,13 +34,6 @@ import (
 	"github.com/vmihailenco/msgpack"
 )
 
-var (
-	prefixAdrsString = "AKADR"
-	prefixPrivString = "AKPRI"
-	prefixNodeString = "AKNOD"
-	prefixNkeyString = "AKNKE"
-)
-
 //Height represents height of Merkle Tree for XMSS
 const (
 	Height2 = iota
@@ -49,16 +42,20 @@ const (
 	Height20
 )
 
-var heights = []uint32{2, 10, 16, 20}
+var (
+	prefixAdrsString = "AKADR"
+	prefixPrivString = "AKPRI"
+)
+
+var heights = []byte{2, 10, 16, 20}
 
 //Address represents an address an assciated Merkle Tree in ADK.
 type Address struct {
-	prefixPriv       []byte
-	prefixPub        []byte
-	prefixPrivString string
-	prefixPubString  string
-	merkle           *xmss.Merkle
-	Seed             []byte
+	prefixPriv []byte
+	prefixPub  []byte
+	privateKey *xmss.Merkle
+	Seed       []byte
+	Height     byte
 }
 
 func enc(text []byte, pwd []byte) []byte {
@@ -81,44 +78,15 @@ func New(h byte, seed []byte, config *aklib.Config) (*Address, error) {
 		return nil, errors.New("invalid height")
 	}
 	return &Address{
-		merkle:           xmss.NewMerkle(heights[h], seed),
-		Seed:             seed,
-		prefixPriv:       config.PrefixPriv[h],
-		prefixPub:        config.PrefixAdrs[h],
-		prefixPrivString: prefixPrivString,
-		prefixPubString:  prefixAdrsString,
+		privateKey: xmss.NewMerkle(heights[h], seed),
+		Seed:       seed,
+		prefixPriv: config.PrefixPriv[h],
+		prefixPub:  config.PrefixAdrs[h],
+		Height:     heights[h],
 	}, nil
 }
 
-//NewNode returns Address struct for node ID..
-func NewNode(seed []byte, config *aklib.Config) *Address {
-	adr, err := newNode(Height20, seed, config)
-	if err != nil {
-		panic(err)
-	}
-	return adr
-}
-
-func newNode(h byte, seed []byte, config *aklib.Config) (*Address, error) {
-	if h > Height20 {
-		return nil, errors.New("invalid height")
-	}
-	return &Address{
-		merkle:           xmss.NewMerkle(heights[h], seed),
-		Seed:             seed,
-		prefixPriv:       config.PrefixNkey[h],
-		prefixPub:        config.PrefixNode[h],
-		prefixPrivString: prefixNkeyString,
-		prefixPubString:  prefixNodeString,
-	}, nil
-}
-
-//NewFromEncrypted returns Address struct.
-func NewFromEncrypted(h byte, eseed, pwd []byte, config *aklib.Config) (*Address, error) {
-	return New(h, enc(eseed, pwd), config)
-}
-
-//Seed58 returns base58-encoded encrypted seed.
+//Seed58 returns base58-encoded encrypted seed..
 func (a *Address) Seed58(pwd []byte) string {
 	out := make([]byte, len(a.Seed)+4)
 	copy(out, a.Seed)
@@ -132,26 +100,20 @@ func (a *Address) Seed58(pwd []byte) string {
 	s := make([]byte, len(eseed)+len(pref))
 	copy(s, pref)
 	copy(s[len(pref):], eseed)
-	return a.prefixPrivString + encode58(s)
+	return prefixPrivString + Encode58(s)
 }
 
 func from58(seed58 string, pwd []byte, cfg *aklib.Config) (byte, []byte, error) {
-	var prefix [][]byte
-	switch seed58[:len(prefixPrivString)] {
-	case prefixPrivString:
-		prefix = cfg.PrefixPriv
-	case prefixNkeyString:
-		prefix = cfg.PrefixNkey
-	default:
+	if seed58[:len(prefixPrivString)] != prefixPrivString {
 		return 0, nil, errors.New("invalid prefix string in seed")
 	}
-	eseed, err := decode58(seed58[len(prefixPrivString):])
+	eseed, err := Decode58(seed58[len(prefixPrivString):])
 	if err != nil {
 		return 0, nil, err
 	}
 	var height byte
 	for ; height <= Height20; height++ {
-		pref := prefix[height]
+		pref := cfg.PrefixPriv[height]
 		if bytes.Equal(eseed[:len(pref)], pref) {
 			break
 		}
@@ -185,50 +147,31 @@ func NewFrom58(seed58 string, pwd []byte, cfg *aklib.Config) (*Address, error) {
 
 //PublicKey returns public key.
 func (a *Address) PublicKey() []byte {
-	return a.merkle.PublicKey()
-}
-
-//Height returns height of Merkle Tree..
-func (a *Address) Height() byte {
-	switch a.merkle.Height {
-	case 10:
-		return Height10
-	case 16:
-		return Height16
-	case 20:
-		return Height20
-	}
-	return 0
+	return a.privateKey.PublicKey()
 }
 
 //PK58 returns base58 encoded public key.
 func (a *Address) PK58() string {
 	pref := a.prefixPub
-	pub := a.merkle.PublicKey()
-	p := make([]byte, len(pub)+len(pref))
+	pub := a.privateKey.PublicKey()
+	p := make([]byte, len(pub)-1+len(pref))
 	copy(p, pref)
-	copy(p[len(pref):], pub)
-	return a.prefixPubString + encode58(p)
+	copy(p[len(pref):], pub[1:])
+	return prefixAdrsString + Encode58(p)
 }
 
 //FromPK58 returns decode public key from base58 encoded string.
 func FromPK58(pub58 string, cfg *aklib.Config) ([]byte, error) {
-	var prefix [][]byte
-	switch pub58[:len(prefixAdrsString)] {
-	case prefixAdrsString:
-		prefix = cfg.PrefixAdrs
-	case prefixNodeString:
-		prefix = cfg.PrefixNode
-	default:
+	if pub58[:len(prefixAdrsString)] != prefixAdrsString {
 		return nil, errors.New("invalid prefix string in public key")
 	}
-	pub, err := decode58(pub58[len(prefixAdrsString):])
+	pub, err := Decode58(pub58[len(prefixAdrsString):])
 	if err != nil {
 		return nil, err
 	}
 	var height byte
-	for ; height <= Height20; height++ {
-		pref := prefix[height]
+	for ; height < Height20; height++ {
+		pref := cfg.PrefixAdrs[height]
 		if bytes.Equal(pub[:len(pref)], pref) {
 			break
 		}
@@ -236,36 +179,36 @@ func FromPK58(pub58 string, cfg *aklib.Config) ([]byte, error) {
 	if height > Height20 {
 		return nil, errors.New("invalid prefix bytes in seed")
 	}
-	return pub[len(cfg.PrefixAdrs[height]):], nil
+	pub = pub[len(cfg.PrefixAdrs[height]):]
+	header := heights[height]
+	pub = append([]byte{header}, pub...)
+	return pub, nil
 }
 
 type address struct {
-	Seed             []byte
-	Merkle           *xmss.Merkle
-	PrefixPriv       []byte
-	PrefixPub        []byte
-	PrefixPrivString string
-	PrefixPubString  string
+	Seed       []byte
+	PrivateKey *xmss.Merkle
+	PrefixPriv []byte
+	PrefixPub  []byte
+	Height     byte
 }
 
 func (a *Address) exports() *address {
 	return &address{
-		Seed:             a.Seed,
-		Merkle:           a.merkle,
-		PrefixPriv:       a.prefixPriv,
-		PrefixPub:        a.prefixPub,
-		PrefixPrivString: a.prefixPrivString,
-		PrefixPubString:  a.prefixPubString,
+		Seed:       a.Seed,
+		PrivateKey: a.privateKey,
+		PrefixPriv: a.prefixPriv,
+		PrefixPub:  a.prefixPub,
+		Height:     a.Height,
 	}
 }
 
 func (a *Address) imports(s *address) {
 	a.Seed = s.Seed
-	a.merkle = s.Merkle
+	a.privateKey = s.PrivateKey
 	a.prefixPriv = s.PrefixPriv
 	a.prefixPub = s.PrefixPub
-	a.prefixPrivString = s.PrefixPrivString
-	a.prefixPubString = s.PrefixPubString
+	a.Height = s.Height
 }
 
 //MarshalJSON  marshals Merkle into valid JSON.
@@ -299,30 +242,25 @@ func (a *Address) DecodeMsgpack(dec *msgpack.Decoder) error {
 }
 
 //LeafNo returns leaf number we will use next.
-func (a *Address) LeafNo() uint32 {
-	return a.merkle.Leaf
+func (a *Address) LeafNo() uint64 {
+	return a.privateKey.LeafNo()
 }
 
-//NextLeaf adds leaf number and refresh auth and stack in MerkleTree..
-func (a *Address) NextLeaf(n int) {
-	for i := 0; i < n; i++ {
-		a.merkle.Traverse()
-	}
+//SetLeafNo adds sets leaf no
+//xmsss  should refreshe auth and stack in MerkleTree..
+//it returns an error if tried to set past index.
+func (a *Address) SetLeafNo(n uint64) error {
+	return a.privateKey.SetLeafNo(n)
 }
 
 //Sign signs msg.
 func (a *Address) Sign(msg []byte) []byte {
-	return a.merkle.Sign(msg)
+	return a.privateKey.Sign(msg)
 }
 
-//Verify verifies msg with signature bsig.
-func Verify(bsig, msg, bpk []byte) bool {
-	return xmss.Verify(bsig, msg, bpk)
-}
-
-//GenerateSeed generates a new 32 bytes seed.
+//GenerateSeed generates a new 64 bytes seed.
 func GenerateSeed() []byte {
-	seed := make([]byte, 32)
+	seed := make([]byte, 64)
 	if _, err := rand.Read(seed); err != nil {
 		panic(err)
 	}

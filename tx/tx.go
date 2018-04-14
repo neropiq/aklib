@@ -61,6 +61,9 @@ type GetTXFunc func(hash []byte) (*Body, error)
 //Bytes32 is a slice of 32 bytes
 type Bytes32 [][]byte
 
+//Bytes65 is a slice of 65 bytes
+type Bytes65 [][]byte
+
 const (
 	//HashTypeExcludeOutputs is for excluding some outputs.
 	HashTypeExcludeOutputs = 0x10
@@ -72,27 +75,59 @@ const (
 	RewardFee
 )
 
-//EncodeMsgpack  marshals slice of 32 bytes into valid JSON.
-func (b32 *Bytes32) EncodeMsgpack(enc *msgpack.Encoder) error {
-	dat := make([]byte, 32*len(*b32))
-	for i, b := range *b32 {
-		copy(dat[i*32:], b)
+func encodeMsgpack(b [][]byte, enc *msgpack.Encoder, n int) error {
+	dat := make([]byte, n*len(b))
+	for i, bb := range b {
+		copy(dat[i*n:], bb)
 	}
 	return enc.Encode(dat)
 }
 
-//DecodeMsgpack  unmarshals msgpack bin to slice of 32 bytes.
-func (b32 *Bytes32) DecodeMsgpack(dec *msgpack.Decoder) error {
+func decodeMsgpack(dec *msgpack.Decoder, n int) ([][]byte, error) {
 	var dat []byte
 	if err := dec.Decode(&dat); err != nil {
+		return nil, err
+	}
+	if len(dat)%n != 0 {
+		return nil, errors.New("length of slice must be 3nN")
+	}
+	b := make([][]byte, len(dat)/n)
+	for j := range b {
+		b[j] = append(b[j], dat[j*n:(j+1)*n]...)
+	}
+	return b, nil
+}
+
+//EncodeMsgpack  marshals slice of 32 bytes into valid JSON.
+func (b32 *Bytes32) EncodeMsgpack(enc *msgpack.Encoder) error {
+	return encodeMsgpack(*b32, enc, 32)
+}
+
+//DecodeMsgpack  unmarshals msgpack bin to slice of 32 bytes.
+func (b32 *Bytes32) DecodeMsgpack(dec *msgpack.Decoder) error {
+	b, err := decodeMsgpack(dec, 32)
+	if err != nil {
 		return err
 	}
-	if len(dat)%32 != 0 {
-		return errors.New("length of slice must be 32*N")
+	for j := range b {
+		copy((*b32)[j], b[j])
 	}
-	*b32 = make([][]byte, len(dat)/32)
-	for j := range *b32 {
-		(*b32)[j] = append((*b32)[j], dat[j*32:(j+1)*32]...)
+	return nil
+}
+
+//EncodeMsgpack  marshals slice of 65 bytes into valid JSON.
+func (b65 *Bytes65) EncodeMsgpack(enc *msgpack.Encoder) error {
+	return encodeMsgpack(*b65, enc, 65)
+}
+
+//DecodeMsgpack  unmarshals msgpack bin to slice of 65 bytes.
+func (b65 *Bytes65) DecodeMsgpack(dec *msgpack.Decoder) error {
+	b, err := decodeMsgpack(dec, 65)
+	if err != nil {
+		return err
+	}
+	for j := range b {
+		copy((*b65)[j], b[j])
 	}
 	return nil
 }
@@ -105,14 +140,14 @@ type Input struct {
 
 //Output is an output in transactions.
 type Output struct {
-	Address []byte `json:"address"` //32 bytes
+	Address []byte `json:"address"` //65 bytes
 	Value   uint64 `json:"value"`   //8 bytes
 }
 
 //MultiSigOut is an multisig output in transactions.
 type MultiSigOut struct {
 	N         byte    `json:"n"`         //0 means normal payment, or N out of len(Address) multisig.
-	Addresses Bytes32 `json:"addresses"` //< 32 * 32 bytes
+	Addresses Bytes65 `json:"addresses"` //< 65 * 32 bytes
 	Value     uint64  `json:"value"`     //8 bytes
 }
 
@@ -226,7 +261,7 @@ func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
 		return fmt.Errorf("number of output must be %d", OutputsMax)
 	}
 	for n, o := range tx.Outputs {
-		if len(o.Address) != 32 {
+		if len(o.Address) != 65 {
 			return fmt.Errorf("address in outputs %d must be 32 bytes", n)
 		}
 		if o.Value > aklib.ADKSupply {
@@ -243,7 +278,7 @@ func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
 				n, MultisigAddressMax)
 		}
 		for _, a := range o.Addresses {
-			if len(a) != 32 {
+			if len(a) != 65 {
 				return fmt.Errorf("address size at multisig %d must be 32 bytes", n)
 			}
 		}

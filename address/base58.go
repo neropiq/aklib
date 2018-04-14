@@ -43,8 +43,8 @@ func init() {
 	}
 }
 
-//encode58 encodes byte slice to base58.
-func encode58(encoded []byte) string {
+//Encode58 encodes byte slice to base58.
+func Encode58(encoded []byte) string {
 	out := make([]byte, len(encoded)+4)
 	copy(out, encoded)
 	hash := sha256.Sum256(encoded)
@@ -61,8 +61,8 @@ func encode58(encoded []byte) string {
 	return string(buffer)
 }
 
-//decode58 decodes base58 value to bytes.
-func decode58(value string) ([]byte, error) {
+//Decode58 decodes base58 value to bytes.
+func Decode58(value string) ([]byte, error) {
 	if len(value) < 5 {
 		return nil, errors.New("invalid input")
 	}

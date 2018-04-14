@@ -61,11 +61,11 @@ var tx = &Transaction{
 		},
 		Outputs: []*Output{
 			&Output{
-				Address: make([]byte, 32),
+				Address: make([]byte, 65),
 				Value:   111,
 			},
 			&Output{
-				Address: make([]byte, 32),
+				Address: make([]byte, 65),
 				Value:   222,
 			},
 		},
@@ -73,19 +73,19 @@ var tx = &Transaction{
 			&MultiSigOut{
 				N: 3,
 				Addresses: [][]byte{
-					make([]byte, 32),
-					make([]byte, 32),
-					make([]byte, 32),
-					make([]byte, 32),
+					make([]byte, 65),
+					make([]byte, 65),
+					make([]byte, 65),
+					make([]byte, 65),
 				},
 				Value: 2,
 			},
 			&MultiSigOut{
 				N: 2,
 				Addresses: [][]byte{
-					make([]byte, 32),
-					make([]byte, 32),
-					make([]byte, 32),
+					make([]byte, 65),
+					make([]byte, 65),
+					make([]byte, 65),
 				},
 				Value: 331,
 			},
