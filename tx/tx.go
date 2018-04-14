@@ -93,7 +93,7 @@ func decodeMsgpack(dec *msgpack.Decoder, n int) ([][]byte, error) {
 	}
 	b := make([][]byte, len(dat)/n)
 	for j := range b {
-		b[j] = append(b[j], dat[j*n:(j+1)*n]...)
+		b[j] = dat[j*n : (j+1)*n]
 	}
 	return b, nil
 }
@@ -109,9 +109,7 @@ func (b32 *Bytes32) DecodeMsgpack(dec *msgpack.Decoder) error {
 	if err != nil {
 		return err
 	}
-	for j := range b {
-		copy((*b32)[j], b[j])
-	}
+	*b32 = b
 	return nil
 }
 
@@ -126,9 +124,7 @@ func (b65 *Bytes65) DecodeMsgpack(dec *msgpack.Decoder) error {
 	if err != nil {
 		return err
 	}
-	for j := range b {
-		copy((*b65)[j], b[j])
-	}
+	*b65 = b
 	return nil
 }
 

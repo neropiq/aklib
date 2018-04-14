@@ -267,11 +267,11 @@ var m = store{
 	[32]byte{0x1}: &Body{
 		Outputs: []*Output{
 			&Output{
-				Address: make([]byte, 32),
+				Address: make([]byte, 65),
 				Value:   543,
 			},
 			&Output{
-				Address: make([]byte, 32),
+				Address: make([]byte, 65),
 				Value:   0,
 			},
 		},
@@ -279,19 +279,19 @@ var m = store{
 			&MultiSigOut{
 				N: 3,
 				Addresses: [][]byte{
-					make([]byte, 32),
-					make([]byte, 32),
-					make([]byte, 32),
-					make([]byte, 32),
+					make([]byte, 65),
+					make([]byte, 65),
+					make([]byte, 65),
+					make([]byte, 65),
 				},
 				Value: 0,
 			},
 			&MultiSigOut{
 				N: 2,
 				Addresses: [][]byte{
-					make([]byte, 32),
-					make([]byte, 32),
-					make([]byte, 32),
+					make([]byte, 65),
+					make([]byte, 65),
+					make([]byte, 65),
 				},
 				Value: 123,
 			},
@@ -300,7 +300,7 @@ var m = store{
 	[32]byte{0x2}: &Body{
 		Outputs: []*Output{
 			&Output{
-				Address: make([]byte, 32),
+				Address: make([]byte, 65),
 				Value:   0,
 			},
 		},
@@ -308,19 +308,19 @@ var m = store{
 			&MultiSigOut{
 				N: 3,
 				Addresses: [][]byte{
-					make([]byte, 32),
-					make([]byte, 32),
-					make([]byte, 32),
-					make([]byte, 32),
+					make([]byte, 65),
+					make([]byte, 65),
+					make([]byte, 65),
+					make([]byte, 65),
 				},
 				Value: 0,
 			},
 			&MultiSigOut{
 				N: 2,
 				Addresses: [][]byte{
-					make([]byte, 32),
-					make([]byte, 32),
-					make([]byte, 32),
+					make([]byte, 65),
+					make([]byte, 65),
+					make([]byte, 65),
 				},
 				Value: 0,
 			},
@@ -420,7 +420,7 @@ func TestTicket2(t *testing.T) {
 			},
 			Outputs: []*Output{
 				&Output{
-					Address: make([]byte, 32),
+					Address: make([]byte, 65),
 					Value:   543,
 				},
 			},
