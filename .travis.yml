@@ -8,8 +8,6 @@ env:
   - TEST_SUITE="-tags travis"
   - TEST_SUITE="-run ^TestAddressMA$"
   - TEST_SUITE="-run ^TestAddressTA$"
-  - TEST_SUITE="-run ^TestNodeMA$"
-  - TEST_SUITE="-run ^TestNodeTA$"
 
 before_install:
 - go get -u github.com/axw/gocov/gocov
