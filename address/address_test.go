@@ -23,6 +23,7 @@ package address
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"testing"
 
@@ -96,22 +97,25 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 		t.Error("invalid seed58 prefix")
 	}
 
-	pk58 := a.PK58()
+	pk58 := a.Address58()
 	t.Log(pk58)
 	if pk58[:len(adr)] != adr {
 		t.Error("invalid address prefix")
 	}
-	pk, err := FromPK58(pk58, net)
+	pk, h2, err := FromAddress58(pk58, net)
 	if err != nil {
 		t.Error(err)
 	}
-	pk2 := a.PublicKey()
+	if h2 != heights[h] {
+		t.Error("invalid height")
+	}
+	pk2 := a.Address()
 	if !bytes.Equal(pk, pk2) {
-		t.Error("invalid frompk58")
+		t.Error("invalid frompk58", hex.EncodeToString(pk), hex.EncodeToString(pk2))
 	}
 	msg := []byte("This is a test for XMSS.")
 	sig := a.Sign(msg)
-	if !xmss.Verify(sig, msg, pk) {
+	if !xmss.Verify(sig, msg, a.PublicKey()) {
 		t.Error("signature is invalid")
 	}
 
@@ -128,7 +132,7 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 		t.Error("invalid unmarshal")
 	}
 	sig = c.Sign(msg)
-	if !xmss.Verify(sig, msg, pk) {
+	if !xmss.Verify(sig, msg, a.PublicKey()) {
 		t.Error("signature is invalid")
 	}
 
@@ -144,7 +148,7 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 		t.Error("invalid unmarshal")
 	}
 	sig = mc.Sign(msg)
-	if !xmss.Verify(sig, msg, pk) {
+	if !xmss.Verify(sig, msg, a.PublicKey()) {
 		t.Error("signature is invalid")
 	}
 }

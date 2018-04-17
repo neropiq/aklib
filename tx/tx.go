@@ -23,10 +23,8 @@ package tx
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/AidosKuneen/aklib"
@@ -45,7 +43,7 @@ const (
 	OutputsMax         = 32
 	MultisigMax        = 4
 	MultisigAddressMax = 32
-	PreviousMax        = 8
+	PreviousMax        = 2
 )
 
 var (
@@ -60,9 +58,6 @@ type GetTXFunc func(hash []byte) (*Body, error)
 
 //Bytes32 is a slice of 32 bytes
 type Bytes32 [][]byte
-
-//Bytes65 is a slice of 65 bytes
-type Bytes65 [][]byte
 
 const (
 	//HashTypeExcludeOutputs is for excluding some outputs.
@@ -113,21 +108,6 @@ func (b32 *Bytes32) DecodeMsgpack(dec *msgpack.Decoder) error {
 	return nil
 }
 
-//EncodeMsgpack  marshals slice of 65 bytes into valid JSON.
-func (b65 *Bytes65) EncodeMsgpack(enc *msgpack.Encoder) error {
-	return encodeMsgpack(*b65, enc, 65)
-}
-
-//DecodeMsgpack  unmarshals msgpack bin to slice of 65 bytes.
-func (b65 *Bytes65) DecodeMsgpack(dec *msgpack.Decoder) error {
-	b, err := decodeMsgpack(dec, 65)
-	if err != nil {
-		return err
-	}
-	*b65 = b
-	return nil
-}
-
 //Input is an input in transactions.
 type Input struct {
 	PreviousTX []byte `json:"previous_tx"` //32 bytes
@@ -143,7 +123,7 @@ type Output struct {
 //MultiSigOut is an multisig output in transactions.
 type MultiSigOut struct {
 	N         byte    `json:"n"`         //0 means normal payment, or N out of len(Address) multisig.
-	Addresses Bytes65 `json:"addresses"` //< 65 * 32 bytes
+	Addresses Bytes32 `json:"addresses"` //< 65 * 32 bytes
 	Value     uint64  `json:"value"`     //8 bytes
 }
 
@@ -151,7 +131,6 @@ type MultiSigOut struct {
 type MultiSigIn struct {
 	PreviousTX []byte `json:"previous_tx"` //32 bytes
 	Index      byte   `json:"index"`
-	NAddress   []byte `json:"n_address"` //8 bytes
 }
 
 //max size=7021 bytes, normally 363 bytes
@@ -177,8 +156,14 @@ type Body struct {
 	Reserved     []byte         `json:"-"`       //not used
 }
 
-//Signatures is a signature  part of Transaction.
-type Signatures [][]byte //  2852 * N bytes. < 2852*16=.45632 bytes
+//Signature is a signature  part of Transaction.
+type Signature struct {
+	PublicKey []byte
+	Sig       []byte //  2852 * N bytes. < 2852*16=.45632 bytes
+}
+
+//Signatures is a slice of Signature
+type Signatures []*Signature
 
 //Transaction is a transactio in Aidos Kuneen.
 type Transaction struct {
@@ -257,7 +242,7 @@ func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
 		return fmt.Errorf("number of output must be %d", OutputsMax)
 	}
 	for n, o := range tx.Outputs {
-		if len(o.Address) != 65 {
+		if len(o.Address) != 32 {
 			return fmt.Errorf("address in outputs %d must be 32 bytes", n)
 		}
 		if o.Value > aklib.ADKSupply {
@@ -273,9 +258,14 @@ func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
 			return fmt.Errorf("number of addresses at multisig %d must be under %d",
 				n, MultisigAddressMax)
 		}
-		for _, a := range o.Addresses {
-			if len(a) != 65 {
+		for i, a := range o.Addresses {
+			if len(a) != 32 {
 				return fmt.Errorf("address size at multisig %d must be 32 bytes", n)
+			}
+			for j := i + 1; j < len(o.Addresses); j++ {
+				if bytes.Equal(a, o.Addresses[j]) {
+					return fmt.Errorf("multisig %d has same address in %d and %d", n, i, j)
+				}
 			}
 		}
 		if o.N > byte(len(o.Addresses)) {
@@ -287,8 +277,8 @@ func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
 				n, aklib.ADKSupply)
 		}
 	}
-	if len(tx.Previous) > PreviousMax {
-		return fmt.Errorf("number of previous tx must be under %d", PreviousMax)
+	if len(tx.Previous) > PreviousMax || len(tx.Previous) == 0 {
+		return fmt.Errorf("number of previous tx must be under %d and must not be 0", PreviousMax)
 	}
 	for n, i := range tx.Previous {
 		if len(i) != 32 {
@@ -330,6 +320,17 @@ func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
 			return errors.New("PoW doesn't meet ticket difficulty")
 		}
 	}
+	dat := tx.HashForSign()
+	for n, sig := range tx.Signatures {
+		if !xmss.Verify(sig.Sig, dat, sig.PublicKey) {
+			return fmt.Errorf("failed to verify a signature at %d", n)
+		}
+		for nn := n + 1; nn < len(tx.Signatures); nn++ {
+			if bytes.Equal(sig.PublicKey, tx.Signatures[nn].PublicKey) {
+				return fmt.Errorf("there are same publik keys in signature at %d and %d", n, nn)
+			}
+		}
+	}
 	return tx.hasValidHashes(cfg, includePow)
 }
 
@@ -343,7 +344,6 @@ func isValidHash(h []byte, e uint32) bool {
 func (tx *Transaction) hasValidHashes(cfg *aklib.Config, includePow bool) error {
 	h := tx.Hash()
 	if !isValidHash(h, tx.Easiness) && includePow {
-		log.Println(hex.EncodeToString(tx.Hash()), tx.Easiness)
 		return errors.New("tx hash doesn't not match easiness")
 	}
 	for _, i := range tx.Inputs {
@@ -396,9 +396,24 @@ func (tx *Transaction) CheckAll(getTX GetTXFunc, cfg *aklib.Config) error {
 	return tx.checkAll(getTX, cfg, true)
 }
 
-func hasAddress(adrs [][]byte, adr []byte) bool {
+type addresses struct {
+	used bool
+	adr  []byte
+}
+
+func hasAddress(adrs []*addresses, adr []byte) bool {
 	for _, a := range adrs {
-		if bytes.Equal(a, adr) {
+		if bytes.Equal(a.adr, adr) {
+			a.used = true
+			return true
+		}
+	}
+	return false
+}
+
+func hasUunused(adrs []*addresses) bool {
+	for _, a := range adrs {
+		if !a.used {
 			return true
 		}
 	}
@@ -421,10 +436,14 @@ func (tx *Transaction) checkAll(getTX GetTXFunc, cfg *aklib.Config, includePow b
 	for _, o := range tx.MultiSigOuts {
 		totalout += o.Value
 	}
-	dat := tx.HashForSign()
 	var totalin uint64
-	var nsig byte
-	adrs := make([][]byte, 0, len(tx.Inputs)+1)
+	adrs := make([]*addresses, 0, len(tx.Inputs)+1)
+	for _, sig := range tx.Signatures {
+		hadr := sha256.Sum256(sig.PublicKey)
+		adrs = append(adrs, &addresses{
+			adr: hadr[:],
+		})
+	}
 	for n, inp := range tx.Inputs {
 		inTX, err := getTX(inp.PreviousTX)
 		if err != nil {
@@ -435,17 +454,9 @@ func (tx *Transaction) checkAll(getTX GetTXFunc, cfg *aklib.Config, includePow b
 		}
 		totalin += inTX.Outputs[inp.Index].Value
 		inTXAdr := inTX.Outputs[inp.Index].Address
-		if hasAddress(adrs, inTXAdr) {
-			continue
+		if !hasAddress(adrs, inTXAdr) {
+			return fmt.Errorf("no signature for input %d", n)
 		}
-		adrs = append(adrs, inTXAdr)
-		if nsig >= byte(len(tx.Signatures)) {
-			return errors.New("signature size is too small")
-		}
-		if !xmss.Verify(tx.Signatures[nsig], dat, inTXAdr) {
-			return fmt.Errorf("failed to verify a signature at %d", n)
-		}
-		nsig++
 	}
 	for n, inp := range tx.MultiSigIns {
 		inTX, err := getTX(inp.PreviousTX)
@@ -457,31 +468,14 @@ func (tx *Transaction) checkAll(getTX GetTXFunc, cfg *aklib.Config, includePow b
 		}
 		mul := inTX.MultiSigOuts[inp.Index]
 		totalin += mul.Value
-		if int(mul.N) != len(inp.NAddress) {
-			return fmt.Errorf("invalid number of sign addresses %d, should be %d", len(inp.NAddress), len(mul.Addresses))
-		}
-		for i, nadr := range inp.NAddress {
-			if len(mul.Addresses) <= int(nadr) {
-				return fmt.Errorf("invalid number of sign addresses %d, should be under %d", nadr, len(mul.Addresses))
-			}
-			for j := i + 1; j < len(inp.NAddress); j++ {
-				if nadr == inp.NAddress[j] {
-					return fmt.Errorf("multisigin %d has same address number at %d and %d", n, i, j)
-				}
+		exist := 0
+		for _, adr := range mul.Addresses {
+			if hasAddress(adrs, adr) {
+				exist++
 			}
 		}
-		for _, index := range inp.NAddress {
-			if hasAddress(adrs, mul.Addresses[index]) {
-				continue
-			}
-			if nsig >= byte(len(tx.Signatures)) {
-				return errors.New("signature size is too small")
-			}
-			if !xmss.Verify(tx.Signatures[nsig], dat, mul.Addresses[index]) {
-				return fmt.Errorf("failed to verify a multisig signature at addrss no.%d in %d", index, n)
-			}
-			adrs = append(adrs, mul.Addresses[index])
-			nsig++
+		if exist != int(mul.N) {
+			return fmt.Errorf("invalid number of valid signatures %d in multisig %d, should be %d", exist, n, mul.N)
 		}
 	}
 	if len(tx.TicketInput) > 0 {
@@ -490,19 +484,11 @@ func (tx *Transaction) checkAll(getTX GetTXFunc, cfg *aklib.Config, includePow b
 			return err
 		}
 		if !hasAddress(adrs, inTX.TicketOutput) {
-			adrs = append(adrs, inTX.TicketOutput)
-			if nsig >= byte(len(tx.Signatures)) {
-				return errors.New("signature size is too small")
-			}
-			if !xmss.Verify(tx.Signatures[nsig], dat, inTX.TicketOutput) {
-				return fmt.Errorf("cannot verify the ticket input")
-			}
-			nsig++
+			return errors.New("cannot verify the ticket input")
 		}
 	}
-	if int(nsig) != len(tx.Signatures) {
-		return fmt.Errorf("number of signatures %d must be same as one of inputs %d",
-			len(tx.Signatures), nsig)
+	if hasUunused(adrs) {
+		return errors.New("there are(is) unsed signature")
 	}
 	if totalin != totalout {
 		return fmt.Errorf("total input ADK %v does not equal to one of output %v",

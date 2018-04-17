@@ -126,24 +126,31 @@ func (a *Address) PublicKey() []byte {
 	return a.privateKey.PublicKey()
 }
 
-//PK58 returns base58 encoded public key.
-func (a *Address) PK58() string {
-	pref := a.prefixPub
+//Address returns the address in binary..
+func (a *Address) Address() []byte {
 	pub := a.privateKey.PublicKey()
-	p := make([]byte, len(pub)-1+len(pref))
+	hpub := sha256.Sum256(pub)
+	return hpub[:]
+}
+
+//Address58 returns base58 encoded public key.
+func (a *Address) Address58() string {
+	pref := a.prefixPub
+	hpub := a.Address()
+	p := make([]byte, len(hpub)+len(pref))
 	copy(p, pref)
-	copy(p[len(pref):], pub[1:])
+	copy(p[len(pref):], hpub)
 	return prefixNodeString + address.Encode58(p)
 }
 
-//FromPK58 returns decode public key from base58 encoded string.
-func FromPK58(pub58 string, cfg *aklib.Config) ([]byte, error) {
+//FromAddress58 returns decode public key from base58 encoded string.
+func FromAddress58(pub58 string, cfg *aklib.Config) ([]byte, byte, error) {
 	if pub58[:len(prefixNodeString)] != prefixNodeString {
-		return nil, errors.New("invalid prefix string in public key")
+		return nil, 0, errors.New("invalid prefix string in public key")
 	}
 	pub, err := address.Decode58(pub58[len(prefixNodeString):])
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	var height byte
 	for ; height <= Height60; height++ {
@@ -153,16 +160,10 @@ func FromPK58(pub58 string, cfg *aklib.Config) ([]byte, error) {
 		}
 	}
 	if height > Height60 {
-		return nil, errors.New("invalid prefix bytes in seed")
+		return nil, 0, errors.New("invalid prefix bytes in seed")
 	}
 	pub = pub[len(cfg.PrefixAdrs[height]):]
-	var header byte
-	header, err = xmss.PublickeyMTHeader(uint32(heights[height]), uint32(heights[height]/10))
-	if err != nil {
-		return nil, err
-	}
-	pub = append([]byte{header}, pub...)
-	return pub, nil
+	return pub, heights[height], nil
 }
 
 type adr struct {

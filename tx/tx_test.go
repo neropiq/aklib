@@ -28,6 +28,8 @@ import (
 	"testing"
 	"time"
 
+	"crypto/sha256"
+
 	"github.com/AidosKuneen/numcpu"
 
 	"github.com/AidosKuneen/aklib"
@@ -56,16 +58,15 @@ var tx = &Transaction{
 			&MultiSigIn{
 				PreviousTX: make([]byte, 32),
 				Index:      1,
-				NAddress:   []byte{1, 2},
 			},
 		},
 		Outputs: []*Output{
 			&Output{
-				Address: make([]byte, 65),
+				Address: make([]byte, 32),
 				Value:   111,
 			},
 			&Output{
-				Address: make([]byte, 65),
+				Address: make([]byte, 32),
 				Value:   222,
 			},
 		},
@@ -73,19 +74,19 @@ var tx = &Transaction{
 			&MultiSigOut{
 				N: 3,
 				Addresses: [][]byte{
-					make([]byte, 65),
-					make([]byte, 65),
-					make([]byte, 65),
-					make([]byte, 65),
+					[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+					[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+					[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+					[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
 				},
 				Value: 2,
 			},
 			&MultiSigOut{
 				N: 2,
 				Addresses: [][]byte{
-					make([]byte, 65),
-					make([]byte, 65),
-					make([]byte, 65),
+					[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+					[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+					[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
 				},
 				Value: 331,
 			},
@@ -102,10 +103,11 @@ var tx = &Transaction{
 		Scripts:      nil,
 		Reserved:     nil,
 	},
-	Signatures: [][]byte{
-		make([]byte, 32),
-		make([]byte, 32),
-		make([]byte, 32),
+	Signatures: []*Signature{
+		&Signature{
+			PublicKey: make([]byte, 65),
+			Sig:       make([]byte, 32),
+		},
 	},
 }
 
@@ -123,6 +125,20 @@ func TestValidHashTX(t *testing.T) {
 	}
 }
 func TestPoW(t *testing.T) {
+	seed1 := address.GenerateSeed()
+	a1, err := address.New(address.Height10, seed1, aklib.TestConfig)
+	if err != nil {
+		t.Error(err)
+	}
+	s256 := sha256.Sum256(a1.PublicKey())
+	tx.Signatures[0].PublicKey = s256[:]
+	dat := tx.HashForSign()
+	s1 := a1.Sign(dat)
+	tx.Signatures[0] = &Signature{
+		PublicKey: a1.PublicKey(),
+		Sig:       s1,
+	}
+
 	if err := tx.PoW(); err != nil {
 		t.Error(err)
 	}
@@ -132,6 +148,18 @@ func TestPoW(t *testing.T) {
 	}
 }
 func TestTX(t *testing.T) {
+	seed1 := address.GenerateSeed()
+	a1, err := address.New(address.Height10, seed1, aklib.TestConfig)
+	if err != nil {
+		t.Error(err)
+	}
+	dat := tx.HashForSign()
+	s1 := a1.Sign(dat)
+	tx.Signatures[0] = &Signature{
+		PublicKey: a1.PublicKey(),
+		Sig:       s1,
+	}
+
 	tx.Nonce = make([]uint32, cuckoo.ProofSize)
 	if len(tx.NoExistHashes(m.GetTX)) != 5 {
 		t.Error("invalid nonexistshashes")
@@ -146,16 +174,25 @@ func TestTX(t *testing.T) {
 		t.Error(err)
 	}
 	tx.Inputs[1].Index = 0
+	dat = tx.HashForSign()
+	s1 = a1.Sign(dat)
+	tx.Signatures[0] = &Signature{
+		PublicKey: a1.PublicKey(),
+		Sig:       s1,
+	}
 	if err := tx.check(aklib.TestConfig, false); err == nil {
 		t.Error("must be error")
 	}
 	tx.Inputs[1].Index = 1
 	tx.Time = time.Now().Add(time.Hour)
+	tx.Signatures[0].Sig = a1.Sign(tx.HashForSign())
 	if err := tx.check(aklib.TestConfig, false); err == nil {
 		t.Error("must be error")
 	}
 
 	tx.Time = time.Now().Add(-1 * time.Minute)
+	tx.Signatures[0].Sig = a1.Sign(tx.HashForSign())
+
 	if err := tx.check(aklib.TestConfig, false); err != nil {
 		t.Error(err)
 	}
@@ -206,6 +243,7 @@ func TestTX(t *testing.T) {
 	}
 	tx.Outputs[1].Address[31] = 0
 	tx.Outputs[1].Value = 222
+	tx.Signatures[0].Sig = a1.Sign(tx.HashForSign())
 	typ, err := tx.IsMinable(aklib.TestConfig)
 	if err != nil {
 		t.Error(err)
@@ -215,7 +253,7 @@ func TestTX(t *testing.T) {
 	}
 
 	tx.HashType = 0
-
+	tx.Signatures[0].Sig = a1.Sign(tx.HashForSign())
 	if _, err := tx.IsMinable(aklib.TestConfig); err == nil {
 		t.Error("invalid isminable")
 	}
@@ -230,6 +268,10 @@ func TestTicket(t *testing.T) {
 			Time:         time.Now(),
 			Easiness:     aklib.TestConfig.TicketEasiness,
 			TicketOutput: make([]byte, 32),
+			Previous: [][]byte{
+				make([]byte, 32),
+				make([]byte, 32),
+			},
 		},
 	}
 	if err := ticket.PoW(); err != nil {
@@ -267,11 +309,11 @@ var m = store{
 	[32]byte{0x1}: &Body{
 		Outputs: []*Output{
 			&Output{
-				Address: make([]byte, 65),
+				Address: make([]byte, 32),
 				Value:   543,
 			},
 			&Output{
-				Address: make([]byte, 65),
+				Address: make([]byte, 32),
 				Value:   0,
 			},
 		},
@@ -279,19 +321,19 @@ var m = store{
 			&MultiSigOut{
 				N: 3,
 				Addresses: [][]byte{
-					make([]byte, 65),
-					make([]byte, 65),
-					make([]byte, 65),
-					make([]byte, 65),
+					make([]byte, 32),
+					make([]byte, 32),
+					make([]byte, 32),
+					make([]byte, 32),
 				},
 				Value: 0,
 			},
 			&MultiSigOut{
 				N: 2,
 				Addresses: [][]byte{
-					make([]byte, 65),
-					make([]byte, 65),
-					make([]byte, 65),
+					make([]byte, 32),
+					make([]byte, 32),
+					make([]byte, 32),
 				},
 				Value: 123,
 			},
@@ -300,7 +342,7 @@ var m = store{
 	[32]byte{0x2}: &Body{
 		Outputs: []*Output{
 			&Output{
-				Address: make([]byte, 65),
+				Address: make([]byte, 32),
 				Value:   0,
 			},
 		},
@@ -308,19 +350,19 @@ var m = store{
 			&MultiSigOut{
 				N: 3,
 				Addresses: [][]byte{
-					make([]byte, 65),
-					make([]byte, 65),
-					make([]byte, 65),
-					make([]byte, 65),
+					make([]byte, 32),
+					make([]byte, 32),
+					make([]byte, 32),
+					make([]byte, 32),
 				},
 				Value: 0,
 			},
 			&MultiSigOut{
 				N: 2,
 				Addresses: [][]byte{
-					make([]byte, 65),
-					make([]byte, 65),
-					make([]byte, 65),
+					make([]byte, 32),
+					make([]byte, 32),
+					make([]byte, 32),
 				},
 				Value: 0,
 			},
@@ -358,19 +400,34 @@ func TestTX2(t *testing.T) {
 
 	var d [32]byte
 	d[0] = 0x1
-	m[d].Outputs[0].Address = a1.PublicKey()
-	m[d].Outputs[1].Address = a1.PublicKey()
-	m[d].MultiSigOuts[1].Addresses[0] = a2.PublicKey()
-	m[d].MultiSigOuts[1].Addresses[1] = a3.PublicKey()
-	m[d].MultiSigOuts[1].Addresses[2] = a4.PublicKey()
+	s2561 := sha256.Sum256(a1.PublicKey())
+	m[d].Outputs[0].Address = s2561[:]
+	m[d].Outputs[1].Address = s2561[:]
+	s2562 := sha256.Sum256(a2.PublicKey())
+	m[d].MultiSigOuts[1].Addresses[0] = s2562[:]
+	s2563 := sha256.Sum256(a3.PublicKey())
+	m[d].MultiSigOuts[1].Addresses[1] = s2563[:]
+	s2564 := sha256.Sum256(a4.PublicKey())
+	m[d].MultiSigOuts[1].Addresses[2] = s2564[:]
 
 	dat := tx.HashForSign()
 	s1 := a1.Sign(dat)
 	s3 := a3.Sign(dat)
 	s4 := a4.Sign(dat)
-	tx.Signatures[0] = s1
-	tx.Signatures[1] = s3
-	tx.Signatures[2] = s4
+	tx.Signatures = []*Signature{
+		&Signature{
+			PublicKey: a1.PublicKey(),
+			Sig:       s1,
+		},
+		&Signature{
+			PublicKey: a3.PublicKey(),
+			Sig:       s3,
+		},
+		&Signature{
+			PublicKey: a4.PublicKey(),
+			Sig:       s4,
+		},
+	}
 	preh0 := tx.PreHash()
 	if err := tx.PoW(); err != nil {
 		t.Error(err)
@@ -420,7 +477,7 @@ func TestTicket2(t *testing.T) {
 			},
 			Outputs: []*Output{
 				&Output{
-					Address: make([]byte, 65),
+					Address: make([]byte, 32),
 					Value:   543,
 				},
 			},
@@ -431,9 +488,15 @@ func TestTicket2(t *testing.T) {
 			TicketInput:  make([]byte, 32),
 			TicketOutput: make([]byte, 32),
 		},
-		Signatures: [][]byte{
-			make([]byte, 32),
-			make([]byte, 32),
+		Signatures: []*Signature{
+			&Signature{
+				PublicKey: make([]byte, 65),
+				Sig:       make([]byte, 32),
+			},
+			&Signature{
+				PublicKey: make([]byte, 65),
+				Sig:       make([]byte, 32),
+			},
 		},
 	}
 	tx2.Inputs[0].PreviousTX[0] = 0x1
@@ -455,14 +518,22 @@ func TestTicket2(t *testing.T) {
 
 	var d [32]byte
 	d[0] = 0x1
-	m[d].Outputs[0].Address = a1.PublicKey()
-	m[d].TicketOutput = a2.PublicKey()
+	s256 := sha256.Sum256(a1.PublicKey())
+	m[d].Outputs[0].Address = s256[:]
+	s2561 := sha256.Sum256(a2.PublicKey())
+	m[d].TicketOutput = s2561[:]
 
 	dat := tx2.HashForSign()
 	s1 := a1.Sign(dat)
 	s2 := a2.Sign(dat)
-	tx2.Signatures[0] = s1
-	tx2.Signatures[1] = s2
+	tx2.Signatures[0] = &Signature{
+		PublicKey: a1.PublicKey(),
+		Sig:       s1,
+	}
+	tx2.Signatures[1] = &Signature{
+		PublicKey: a2.PublicKey(),
+		Sig:       s2,
+	}
 	if err := tx2.checkAll(m.GetTX, aklib.TestConfig, false); err != nil {
 		t.Error(err)
 	}
