@@ -132,7 +132,7 @@ func TestPoW(t *testing.T) {
 	}
 	s256 := sha256.Sum256(a1.PublicKey())
 	tx.Signatures[0].PublicKey = s256[:]
-	dat := tx.HashForSign()
+	dat := tx.BytesForSign()
 	s1 := a1.Sign(dat)
 	tx.Signatures[0] = &Signature{
 		PublicKey: a1.PublicKey(),
@@ -153,7 +153,7 @@ func TestTX(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	dat := tx.HashForSign()
+	dat := tx.BytesForSign()
 	s1 := a1.Sign(dat)
 	tx.Signatures[0] = &Signature{
 		PublicKey: a1.PublicKey(),
@@ -174,7 +174,7 @@ func TestTX(t *testing.T) {
 		t.Error(err)
 	}
 	tx.Inputs[1].Index = 0
-	dat = tx.HashForSign()
+	dat = tx.BytesForSign()
 	s1 = a1.Sign(dat)
 	tx.Signatures[0] = &Signature{
 		PublicKey: a1.PublicKey(),
@@ -185,13 +185,13 @@ func TestTX(t *testing.T) {
 	}
 	tx.Inputs[1].Index = 1
 	tx.Time = time.Now().Add(time.Hour)
-	tx.Signatures[0].Sig = a1.Sign(tx.HashForSign())
+	tx.Signatures[0].Sig = a1.Sign(tx.BytesForSign())
 	if err := tx.check(aklib.TestConfig, false); err == nil {
 		t.Error("must be error")
 	}
 
 	tx.Time = time.Now().Add(-1 * time.Minute)
-	tx.Signatures[0].Sig = a1.Sign(tx.HashForSign())
+	tx.Signatures[0].Sig = a1.Sign(tx.BytesForSign())
 
 	if err := tx.check(aklib.TestConfig, false); err != nil {
 		t.Error(err)
@@ -234,16 +234,16 @@ func TestTX(t *testing.T) {
 		t.Error(err)
 	}
 	tx.HashType = 0x11
-	hs1 := tx.HashForSign()
+	hs1 := tx.BytesForSign()
 	tx.Outputs[1].Address[31] = 0x1
 	tx.Outputs[1].Value = 1357
-	hs2 := tx.HashForSign()
+	hs2 := tx.BytesForSign()
 	if !bytes.Equal(hs1, hs2) {
 		t.Error("invalid hashtype")
 	}
 	tx.Outputs[1].Address[31] = 0
 	tx.Outputs[1].Value = 222
-	tx.Signatures[0].Sig = a1.Sign(tx.HashForSign())
+	tx.Signatures[0].Sig = a1.Sign(tx.BytesForSign())
 	typ, err := tx.IsMinable(aklib.TestConfig)
 	if err != nil {
 		t.Error(err)
@@ -253,7 +253,7 @@ func TestTX(t *testing.T) {
 	}
 
 	tx.HashType = 0
-	tx.Signatures[0].Sig = a1.Sign(tx.HashForSign())
+	tx.Signatures[0].Sig = a1.Sign(tx.BytesForSign())
 	if _, err := tx.IsMinable(aklib.TestConfig); err == nil {
 		t.Error("invalid isminable")
 	}
@@ -410,7 +410,7 @@ func TestTX2(t *testing.T) {
 	s2564 := sha256.Sum256(a4.PublicKey())
 	m[d].MultiSigOuts[1].Addresses[2] = s2564[:]
 
-	dat := tx.HashForSign()
+	dat := tx.BytesForSign()
 	s1 := a1.Sign(dat)
 	s3 := a3.Sign(dat)
 	s4 := a4.Sign(dat)
@@ -523,7 +523,7 @@ func TestTicket2(t *testing.T) {
 	s2561 := sha256.Sum256(a2.PublicKey())
 	m[d].TicketOutput = s2561[:]
 
-	dat := tx2.HashForSign()
+	dat := tx2.BytesForSign()
 	s1 := a1.Sign(dat)
 	s2 := a2.Sign(dat)
 	tx2.Signatures[0] = &Signature{

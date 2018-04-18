@@ -320,7 +320,7 @@ func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
 			return errors.New("PoW doesn't meet ticket difficulty")
 		}
 	}
-	dat := tx.HashForSign()
+	dat := tx.BytesForSign()
 	for n, sig := range tx.Signatures {
 		if !xmss.Verify(sig.Sig, dat, sig.PublicKey) {
 			return fmt.Errorf("failed to verify a signature at %d", n)
@@ -497,17 +497,19 @@ func (tx *Transaction) checkAll(getTX GetTXFunc, cfg *aklib.Config, includePow b
 	return nil
 }
 
-//HashForSign returns a hash slice for  signinig
-func (tx *Transaction) HashForSign() []byte {
-	return tx.hashPartial(true)
+//BytesForSign returns a hash slice for  signinig
+func (tx *Transaction) BytesForSign() []byte {
+	return tx.partialbytes(true)
 }
 
 //PreHash returns a hash before PoW.
 func (tx *Transaction) PreHash() []byte {
-	return tx.hashPartial(false)
+	bytes := tx.partialbytes(false)
+	hs := sha256.Sum256(bytes)
+	return hs[:]
 }
 
-func (tx *Transaction) hashPartial(isBodyOnly bool) []byte {
+func (tx *Transaction) partialbytes(isBodyOnly bool) []byte {
 	gnonce := tx.Gnonce
 	nonce := tx.Nonce
 	outputs := tx.Outputs
@@ -531,7 +533,6 @@ func (tx *Transaction) hashPartial(isBodyOnly bool) []byte {
 	} else {
 		bytes = tx.Pack()
 	}
-	hs := sha256.Sum256(bytes)
 	tx.Gnonce = gnonce
 	tx.Nonce = nonce
 	tx.Outputs = outputs
@@ -539,7 +540,7 @@ func (tx *Transaction) hashPartial(isBodyOnly bool) []byte {
 	for i, output := range excluded {
 		tx.Outputs[len(tx.Outputs)-1-i] = &output
 	}
-	return hs[:]
+	return bytes
 }
 
 func (tx *Transaction) hashForPoW() []byte {
