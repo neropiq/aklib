@@ -510,37 +510,21 @@ func (tx *Transaction) PreHash() []byte {
 }
 
 func (tx *Transaction) partialbytes(isBodyOnly bool) []byte {
-	gnonce := tx.Gnonce
-	nonce := tx.Nonce
-	outputs := tx.Outputs
-	ticketoutput := tx.TicketOutput
-	tx.Gnonce = 0
-	tx.Nonce = nil
-	tx.TicketOutput = nil
-	var excluded []Output
+	tx2 := tx.Clone()
+	tx2.Gnonce = 0
+	tx2.Nonce = nil
+	tx2.TicketOutput = nil
 	if tx.HashType&0xf0 == HashTypeExcludeOutputs {
 		exclude := int(tx.HashType & 0x0f)
-		excluded = make([]Output, exclude)
 		for i := 0; i < exclude; i++ {
-			excluded[i] = *tx.Outputs[len(tx.Outputs)-1-i]
-			tx.Outputs[len(tx.Outputs)-1-i].Address = nil
-			tx.Outputs[len(tx.Outputs)-1-i].Value = 0
+			tx2.Outputs[len(tx.Outputs)-1-i].Address = nil
+			tx2.Outputs[len(tx.Outputs)-1-i].Value = 0
 		}
 	}
-	var bytes []byte
 	if isBodyOnly {
-		bytes = tx.Body.Pack()
-	} else {
-		bytes = tx.Pack()
+		return tx2.Body.Pack()
 	}
-	tx.Gnonce = gnonce
-	tx.Nonce = nonce
-	tx.Outputs = outputs
-	tx.TicketOutput = ticketoutput
-	for i, output := range excluded {
-		tx.Outputs[len(tx.Outputs)-1-i] = &output
-	}
-	return bytes
+	return tx2.Pack()
 }
 
 func (tx *Transaction) hashForPoW() []byte {
