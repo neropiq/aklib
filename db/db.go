@@ -18,50 +18,68 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package tx
+package db
 
 import (
-	"github.com/AidosKuneen/aklib/arypack"
+	"os"
+
+	"github.com/dgraph-io/badger"
 )
 
-//Pack returns tx in msgpack format.
-func (tx *Transaction) Pack() []byte {
-	b, err := arypack.Marshal(tx)
+//Headers for DB key.
+const (
+	HeaderTxBody byte = iota
+	HeaderTxSig
+	HeaderBalance
+	HeaderNodeIP
+	HeaderNodeSK
+	HeaderStatements
+	HeaderWalletSK
+)
+
+const dbDir = "./db"
+
+//New open badger db.
+func New(dir string) (*badger.DB, error) {
+	if _, err := os.Stat(dir); err != nil {
+		if err := os.Mkdir(dir, 0755); err != nil {
+			return nil, err
+		}
+	}
+	opts := badger.DefaultOptions
+	opts.SyncWrites = false
+	opts.Dir = dir
+	opts.ValueDir = dir
+	return badger.Open(opts)
+}
+
+//Copy copies db to toDir.
+func Copy(db *badger.DB, todir string) {
+	db2, err := New(todir)
 	if err != nil {
 		panic(err)
 	}
-	return b
-}
-
-//Pack returns tx body in msgpack format.
-func (body *Body) Pack() []byte {
-	b, err := arypack.Marshal(body)
+	err = db2.Update(func(txn2 *badger.Txn) error {
+		return db.View(func(txn *badger.Txn) error {
+			opts := badger.DefaultIteratorOptions
+			opts.PrefetchSize = 10
+			it := txn.NewIterator(opts)
+			for it.Rewind(); it.Valid(); it.Next() {
+				item := it.Item()
+				k := item.Key()
+				v, err := item.ValueCopy(nil)
+				if err != nil {
+					return err
+				}
+				if err := txn2.Set(k, v); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+	})
 	if err != nil {
 		panic(err)
 	}
-	return b
-}
-
-//Pack returns tx bSignaturesody in msgpack format.
-func (sig *Signatures) Pack() []byte {
-	b, err := arypack.Marshal(sig)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-//Unpack returns tx from msgpack bin data.
-func (tx *Transaction) Unpack(dat []byte) error {
-	return arypack.Unmarshal(dat, tx)
-}
-
-//Unpack returns tx from msgpack bin data.
-func (body *Body) Unpack(dat []byte) error {
-	return arypack.Unmarshal(dat, body)
-}
-
-//Unpack returns tx from msgpack bin data.
-func (sig *Signatures) Unpack(dat []byte) error {
-	return arypack.Unmarshal(dat, sig)
+	db2.Close()
 }
