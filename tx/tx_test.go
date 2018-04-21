@@ -28,6 +28,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AidosKuneen/aklib/arypack"
+
 	"crypto/sha256"
 
 	"github.com/AidosKuneen/numcpu"
@@ -103,8 +105,8 @@ var tx = &Transaction{
 		Scripts:      nil,
 		Reserved:     nil,
 	},
-	Signatures: []*Signature{
-		&Signature{
+	Signatures: []*address.Signature{
+		&address.Signature{
 			PublicKey: make([]byte, 65),
 			Sig:       make([]byte, 32),
 		},
@@ -133,11 +135,7 @@ func TestPoW(t *testing.T) {
 	s256 := sha256.Sum256(a1.PublicKey())
 	tx.Signatures[0].PublicKey = s256[:]
 	dat := tx.BytesForSign()
-	s1 := a1.Sign(dat)
-	tx.Signatures[0] = &Signature{
-		PublicKey: a1.PublicKey(),
-		Sig:       s1,
-	}
+	tx.Signatures[0] = a1.Sign(dat)
 
 	if err := tx.PoW(); err != nil {
 		t.Error(err)
@@ -154,11 +152,7 @@ func TestTX(t *testing.T) {
 		t.Error(err)
 	}
 	dat := tx.BytesForSign()
-	s1 := a1.Sign(dat)
-	tx.Signatures[0] = &Signature{
-		PublicKey: a1.PublicKey(),
-		Sig:       s1,
-	}
+	tx.Signatures[0] = a1.Sign(dat)
 
 	tx.Nonce = make([]uint32, cuckoo.ProofSize)
 	if len(tx.NoExistHashes(m.GetTX)) != 5 {
@@ -175,37 +169,33 @@ func TestTX(t *testing.T) {
 	}
 	tx.Inputs[1].Index = 0
 	dat = tx.BytesForSign()
-	s1 = a1.Sign(dat)
-	tx.Signatures[0] = &Signature{
-		PublicKey: a1.PublicKey(),
-		Sig:       s1,
-	}
+	tx.Signatures[0] = a1.Sign(dat)
 	if err := tx.check(aklib.TestConfig, false); err == nil {
 		t.Error("must be error")
 	}
 	tx.Inputs[1].Index = 1
 	tx.Time = time.Now().Add(time.Hour)
-	tx.Signatures[0].Sig = a1.Sign(tx.BytesForSign())
+	tx.Signatures[0] = a1.Sign(tx.BytesForSign())
 	if err := tx.check(aklib.TestConfig, false); err == nil {
 		t.Error("must be error")
 	}
 
 	tx.Time = time.Now().Add(-1 * time.Minute)
-	tx.Signatures[0].Sig = a1.Sign(tx.BytesForSign())
+	tx.Signatures[0] = a1.Sign(tx.BytesForSign())
 
 	if err := tx.check(aklib.TestConfig, false); err != nil {
 		t.Error(err)
 	}
 	tx.Time = time.Now()
 
-	b := tx.Body.Pack()
-	s := tx.Signatures.Pack()
+	b := arypack.Marshal(tx.Body)
+	s := arypack.Marshal(tx.Signatures)
 	var b2 Body
-	if err := b2.Unpack(b); err != nil {
+	if err := arypack.Unmarshal(b, &b2); err != nil {
 		t.Error(err)
 	}
 	var s2 Signatures
-	if err := s2.Unpack(s); err != nil {
+	if err := arypack.Unmarshal(s, &s2); err != nil {
 		t.Error(err)
 	}
 	t2 := &Transaction{
@@ -243,7 +233,7 @@ func TestTX(t *testing.T) {
 	}
 	tx.Outputs[1].Address[31] = 0
 	tx.Outputs[1].Value = 222
-	tx.Signatures[0].Sig = a1.Sign(tx.BytesForSign())
+	tx.Signatures[0] = a1.Sign(tx.BytesForSign())
 	typ, err := tx.IsMinable(aklib.TestConfig)
 	if err != nil {
 		t.Error(err)
@@ -253,7 +243,7 @@ func TestTX(t *testing.T) {
 	}
 
 	tx.HashType = 0
-	tx.Signatures[0].Sig = a1.Sign(tx.BytesForSign())
+	tx.Signatures[0] = a1.Sign(tx.BytesForSign())
 	if _, err := tx.IsMinable(aklib.TestConfig); err == nil {
 		t.Error("invalid isminable")
 	}
@@ -414,20 +404,7 @@ func TestTX2(t *testing.T) {
 	s1 := a1.Sign(dat)
 	s3 := a3.Sign(dat)
 	s4 := a4.Sign(dat)
-	tx.Signatures = []*Signature{
-		&Signature{
-			PublicKey: a1.PublicKey(),
-			Sig:       s1,
-		},
-		&Signature{
-			PublicKey: a3.PublicKey(),
-			Sig:       s3,
-		},
-		&Signature{
-			PublicKey: a4.PublicKey(),
-			Sig:       s4,
-		},
-	}
+	tx.Signatures = []*address.Signature{s1, s3, s4}
 	preh0 := tx.PreHash()
 	if err := tx.PoW(); err != nil {
 		t.Error(err)
@@ -488,12 +465,12 @@ func TestTicket2(t *testing.T) {
 			TicketInput:  make([]byte, 32),
 			TicketOutput: make([]byte, 32),
 		},
-		Signatures: []*Signature{
-			&Signature{
+		Signatures: []*address.Signature{
+			&address.Signature{
 				PublicKey: make([]byte, 65),
 				Sig:       make([]byte, 32),
 			},
-			&Signature{
+			&address.Signature{
 				PublicKey: make([]byte, 65),
 				Sig:       make([]byte, 32),
 			},
@@ -524,16 +501,8 @@ func TestTicket2(t *testing.T) {
 	m[d].TicketOutput = s2561[:]
 
 	dat := tx2.BytesForSign()
-	s1 := a1.Sign(dat)
-	s2 := a2.Sign(dat)
-	tx2.Signatures[0] = &Signature{
-		PublicKey: a1.PublicKey(),
-		Sig:       s1,
-	}
-	tx2.Signatures[1] = &Signature{
-		PublicKey: a2.PublicKey(),
-		Sig:       s2,
-	}
+	tx2.Signatures[0] = a1.Sign(dat)
+	tx2.Signatures[1] = a2.Sign(dat)
 	if err := tx2.checkAll(m.GetTX, aklib.TestConfig, false); err != nil {
 		t.Error(err)
 	}

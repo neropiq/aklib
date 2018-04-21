@@ -234,11 +234,14 @@ func (a *Address) SetLeafNo(n uint64) error {
 }
 
 //Sign signs msg.
-func (a *Address) Sign(msg []byte) []byte {
-	return a.privateKey.Sign(msg)
+func (a *Address) Sign(msg []byte) *address.Signature {
+	return &address.Signature{
+		PublicKey: a.PublicKey(),
+		Sig:       a.privateKey.Sign(msg),
+	}
 }
 
 //Verify verifies msg from a node with node key..
-func Verify(bsig, msg, bpk []byte) bool {
-	return xmss.VerifyMT(bsig, msg, bpk)
+func Verify(bsig *address.Signature, msg []byte) bool {
+	return xmss.VerifyMT(bsig.Sig, msg, bsig.PublicKey)
 }

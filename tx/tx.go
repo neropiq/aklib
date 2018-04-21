@@ -27,10 +27,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/AidosKuneen/aklib/arypack"
+
 	"github.com/AidosKuneen/aklib"
+	"github.com/AidosKuneen/aklib/address"
 	"github.com/AidosKuneen/cuckoo"
 	sha256 "github.com/AidosKuneen/sha256-simd"
-	"github.com/AidosKuneen/xmss"
 
 	"github.com/vmihailenco/msgpack"
 )
@@ -156,14 +158,8 @@ type Body struct {
 	Reserved     []byte         `json:"-"`       //not used
 }
 
-//Signature is a signature  part of Transaction.
-type Signature struct {
-	PublicKey []byte
-	Sig       []byte //  2852 * N bytes. < 2852*16=.45632 bytes
-}
-
 //Signatures is a slice of Signature
-type Signatures []*Signature
+type Signatures []*address.Signature
 
 //Transaction is a transactio in Aidos Kuneen.
 type Transaction struct {
@@ -322,7 +318,7 @@ func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
 	}
 	dat := tx.BytesForSign()
 	for n, sig := range tx.Signatures {
-		if !xmss.Verify(sig.Sig, dat, sig.PublicKey) {
+		if !address.Verify(sig, dat) {
 			return fmt.Errorf("failed to verify a signature at %d", n)
 		}
 		for nn := n + 1; nn < len(tx.Signatures); nn++ {
@@ -361,7 +357,7 @@ func (tx *Transaction) hasValidHashes(cfg *aklib.Config, includePow bool) error 
 
 //Hash reteurns hash of tx.
 func (tx *Transaction) Hash() []byte {
-	hh := sha256.Sum256(tx.Pack())
+	hh := sha256.Sum256(arypack.Marshal(tx))
 	return hh[:]
 }
 
@@ -522,15 +518,15 @@ func (tx *Transaction) partialbytes(isBodyOnly bool) []byte {
 		}
 	}
 	if isBodyOnly {
-		return tx2.Body.Pack()
+		return arypack.Marshal(tx2.Body)
 	}
-	return tx2.Pack()
+	return arypack.Marshal(tx2)
 }
 
 func (tx *Transaction) hashForPoW() []byte {
 	nonce := tx.Nonce
 	tx.Nonce = nil
-	btx := tx.Pack()
+	btx := arypack.Marshal(tx)
 	h := sha256.Sum256(btx)
 	tx.Nonce = nonce
 	return h[:]
@@ -538,10 +534,9 @@ func (tx *Transaction) hashForPoW() []byte {
 
 //Clone clones tx.
 func (tx *Transaction) Clone() *Transaction {
-	var err error
-	tx2 := &Transaction{}
-	if err = tx2.Unpack(tx.Pack()); err != nil {
+	var tx2 Transaction
+	if err := arypack.Unmarshal(arypack.Marshal(tx), &tx2); err != nil {
 		panic(err)
 	}
-	return tx2
+	return &tx2
 }

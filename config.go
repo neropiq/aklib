@@ -31,13 +31,15 @@ type Config struct {
 
 	DefaultPort    uint16
 	DefaultRPCPort uint16
+
+	MessageMagic uint32
 }
 
 var (
 	//MainConfig is a Config for MainNet
 	MainConfig = &Config{
 		Easiness:       0x0fffffff,
-		TicketEasiness: 0x07ffffff,
+		TicketEasiness: 0x03ffffff,
 		PrefixPriv: [][]byte{
 			[]byte{0x06, 0xa2, 0x5e}, //"VM1" in base5
 			[]byte{0x06, 0xa2, 0x71}, //"VM5" in base5
@@ -62,6 +64,7 @@ var (
 		},
 		DefaultPort:    14270,
 		DefaultRPCPort: 14271,
+		MessageMagic:   0xD3AB9E77,
 	}
 	//TestConfig is a Config for TestNet
 	TestConfig = &Config{
@@ -91,6 +94,7 @@ var (
 		},
 		DefaultPort:    14370,
 		DefaultRPCPort: 14371,
+		MessageMagic:   0xD9CBA322,
 	}
 )
 

@@ -49,6 +49,12 @@ var (
 
 var heights = []byte{2, 10, 16, 20}
 
+//Signature is a signature for hashed-address..
+type Signature struct {
+	PublicKey []byte
+	Sig       []byte
+}
+
 //Address represents an address an assciated Merkle Tree in ADK.
 type Address struct {
 	prefixPriv []byte
@@ -259,8 +265,16 @@ func (a *Address) SetLeafNo(n uint64) error {
 }
 
 //Sign signs msg.
-func (a *Address) Sign(msg []byte) []byte {
-	return a.privateKey.Sign(msg)
+func (a *Address) Sign(msg []byte) *Signature {
+	return &Signature{
+		PublicKey: a.PublicKey(),
+		Sig:       a.privateKey.Sign(msg),
+	}
+}
+
+//Verify verifies msg from a node with node key..
+func Verify(bsig *Signature, msg []byte) bool {
+	return xmss.Verify(bsig.Sig, msg, bsig.PublicKey)
 }
 
 //GenerateSeed generates a new 64 bytes seed.

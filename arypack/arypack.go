@@ -27,13 +27,13 @@ import (
 )
 
 // Marshal returns the msgpack encoding of v as array.
-func Marshal(dat interface{}) ([]byte, error) {
+func Marshal(dat interface{}) []byte {
 	var buf bytes.Buffer
 	enc := msgpack.NewEncoder(&buf).StructAsArray(true)
 	if err := enc.Encode(dat); err != nil {
-		return nil, err
+		panic(err)
 	}
-	return buf.Bytes(), nil
+	return buf.Bytes()
 }
 
 // Unmarshal parses the msgpack-encoded data and stores the result in the value pointed to by v.

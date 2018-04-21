@@ -21,6 +21,7 @@
 package tx
 
 import (
+	"github.com/AidosKuneen/aklib/address"
 	"github.com/AidosKuneen/aklib/arypack"
 )
 
@@ -43,7 +44,7 @@ func (body *Body) Pack() []byte {
 }
 
 //Pack returns tx bSignaturesody in msgpack format.
-func (sig *Signatures) Pack() []byte {
+func (sig *address.Signature) Pack() []byte {
 	b, err := arypack.Marshal(sig)
 	if err != nil {
 		panic(err)

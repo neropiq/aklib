@@ -28,7 +28,6 @@ import (
 	"testing"
 
 	"github.com/AidosKuneen/aklib"
-	"github.com/AidosKuneen/xmss"
 	"github.com/vmihailenco/msgpack"
 )
 
@@ -115,7 +114,7 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 	}
 	msg := []byte("This is a test for XMSS.")
 	sig := a.Sign(msg)
-	if !xmss.Verify(sig, msg, a.PublicKey()) {
+	if !Verify(sig, msg) {
 		t.Error("signature is invalid")
 	}
 
@@ -132,7 +131,7 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 		t.Error("invalid unmarshal")
 	}
 	sig = c.Sign(msg)
-	if !xmss.Verify(sig, msg, a.PublicKey()) {
+	if !Verify(sig, msg) {
 		t.Error("signature is invalid")
 	}
 
@@ -148,7 +147,7 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 		t.Error("invalid unmarshal")
 	}
 	sig = mc.Sign(msg)
-	if !xmss.Verify(sig, msg, a.PublicKey()) {
+	if !Verify(sig, msg) {
 		t.Error("signature is invalid")
 	}
 }
@@ -159,10 +158,9 @@ func TestAddress2(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	pk2 := a.PublicKey()
 	msg := []byte("This is a test for XMSS.")
 	sig := a.Sign(msg)
-	if !xmss.Verify(sig, msg, pk2) {
+	if !Verify(sig, msg) {
 		t.Error("signature is invalid")
 	}
 }

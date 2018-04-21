@@ -39,8 +39,8 @@ const (
 
 const dbDir = "./db"
 
-//New open badger db.
-func New(dir string) (*badger.DB, error) {
+//Open open  or make a badger db.
+func Open(dir string) (*badger.DB, error) {
 	if _, err := os.Stat(dir); err != nil {
 		if err := os.Mkdir(dir, 0755); err != nil {
 			return nil, err
@@ -55,7 +55,7 @@ func New(dir string) (*badger.DB, error) {
 
 //Copy copies db to toDir.
 func Copy(db *badger.DB, todir string) {
-	db2, err := New(todir)
+	db2, err := Open(todir)
 	if err != nil {
 		panic(err)
 	}
@@ -81,5 +81,12 @@ func Copy(db *badger.DB, todir string) {
 	if err != nil {
 		panic(err)
 	}
-	db2.Close()
+	if err := db2.Close(); err != nil {
+		panic(err)
+	}
+}
+
+//Key return h+okey
+func Key(okey []byte, h byte) []byte {
+	return append([]byte{h}, okey...)
 }
