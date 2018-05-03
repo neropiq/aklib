@@ -50,7 +50,11 @@ const (
 
 var (
 	//TxNormal is a type for nomal tx.
-	TxNormal = []byte{0xAD, 0xBF, 0x00, 0x01}
+	TxNormal = []byte{0xAD, 0xBF, 0x43, 0x01}
+	//TxConfirm is a type for confirmation tx.
+	TxConfirm = []byte{0xAD, 0xBF, 0x43, 0x02}
+	//TxVote is a type for voting tx.
+	TxVote = []byte{0xAD, 0xBF, 0x00, 0x03}
 	//Genesis tx hash
 	Genesis = make([]byte, 32)
 )
@@ -140,7 +144,7 @@ type MultiSigIn struct {
 //Body is a Transactoin except signature.
 type Body struct {
 	Type         []byte         `json:"type"`          //4 bytes
-	Nonce        []uint32       `json:"nonce"`         //20*VarInt
+	Nonce        []uint32       `json:"nonce"`         //20*VarInt(<4)
 	Gnonce       uint32         `json:"g_nonce"`       //4 bytes
 	Time         time.Time      `json:"time"`          //4 bytes
 	Message      []byte         `json:"message"`       //<255 bytes

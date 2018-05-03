@@ -526,11 +526,18 @@ func TestTicket2(t *testing.T) {
 	}
 }
 
-func BenchPoWMain0(b *testing.B) {
+func BenchmarkPoWMain0(b *testing.B) {
 	n := numcpu.NumCPU()
 	p := runtime.GOMAXPROCS(n)
 	tx.Easiness = aklib.MainConfig.Easiness
 	tx.Time = time.Time{}
+	seed1 := address.GenerateSeed()
+	a1, err := address.New(address.Height10, seed1, aklib.MainConfig)
+	if err != nil {
+		b.Error(err)
+	}
+	dat := tx.BytesForSign()
+	tx.Signatures[0] = a1.Sign(dat)
 	for i := range tx.Nonce {
 		tx.Nonce[i] = 0
 	}
@@ -548,11 +555,18 @@ func BenchPoWMain0(b *testing.B) {
 	tx.Easiness = aklib.TestConfig.Easiness
 	runtime.GOMAXPROCS(p)
 }
-func BenchPoWMainRand(b *testing.B) {
+func BenchmarkPoWMainRand(b *testing.B) {
 	n := numcpu.NumCPU()
 	p := runtime.GOMAXPROCS(n)
 	tx.Easiness = aklib.MainConfig.Easiness
 	tx.Time = time.Now()
+	seed1 := address.GenerateSeed()
+	a1, err := address.New(address.Height10, seed1, aklib.MainConfig)
+	if err != nil {
+		b.Error(err)
+	}
+	dat := tx.BytesForSign()
+	tx.Signatures[0] = a1.Sign(dat)
 	for i := range tx.Nonce {
 		tx.Nonce[i] = 0
 	}

@@ -38,7 +38,7 @@ type Config struct {
 var (
 	//MainConfig is a Config for MainNet
 	MainConfig = &Config{
-		Easiness:       0x0fffffff,
+		Easiness:       0x3fffffff,
 		TicketEasiness: 0x03ffffff,
 		PrefixPriv: [][]byte{
 			[]byte{0x06, 0xa2, 0x5e}, //"VM1" in base5
