@@ -531,7 +531,7 @@ func BenchmarkPoWMain0(b *testing.B) {
 	p := runtime.GOMAXPROCS(n)
 	tx.Easiness = aklib.MainConfig.Easiness
 	tx.Time = time.Time{}
-	seed1 := address.GenerateSeed()
+	seed1 := make([]byte, 32)
 	a1, err := address.New(address.Height10, seed1, aklib.MainConfig)
 	if err != nil {
 		b.Error(err)
