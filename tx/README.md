@@ -41,7 +41,7 @@ are required to compile this.
 The expecting time of suceeding to find a solution of cuckoo is around 20 seconds and 3-sigma
 is 60 seconds for general low-end PCs, and this lib is configured to do 2^2=4 times in average 
 to meet hash-based PoW now.
-And generally high-end serverss need half of this time.
+And generally high-end servers need half of this time.
 
 So the estimation of expecting PoW time
 * for low-end PCs is 80 seconds in average and 3-sigma is 240 seconds.
