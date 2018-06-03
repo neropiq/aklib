@@ -75,7 +75,7 @@ var tx = &Transaction{
 		MultiSigOuts: []*MultiSigOut{
 			&MultiSigOut{
 				N: 3,
-				Addresses: [][]byte{
+				Addresses: AddressSlice{
 					[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 					[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 					[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
@@ -85,7 +85,7 @@ var tx = &Transaction{
 			},
 			&MultiSigOut{
 				N: 2,
-				Addresses: [][]byte{
+				Addresses: AddressSlice{
 					[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 					[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 					[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
@@ -93,7 +93,7 @@ var tx = &Transaction{
 				Value: 331,
 			},
 		},
-		Previous: [][]byte{
+		Previous: HashSlice{
 			make([]byte, 32),
 			make([]byte, 32),
 		},
@@ -234,7 +234,7 @@ func TestTX(t *testing.T) {
 	tx.Outputs[1].Address[31] = 0
 	tx.Outputs[1].Value = 222
 	tx.Signatures[0] = a1.Sign(tx.BytesForSign())
-	typ, err := tx.IsMinable(aklib.TestConfig)
+	typ, err := tx.CheckMinable(aklib.TestConfig)
 	if err != nil {
 		t.Error(err)
 	}
@@ -244,7 +244,7 @@ func TestTX(t *testing.T) {
 
 	tx.HashType = 0
 	tx.Signatures[0] = a1.Sign(tx.BytesForSign())
-	if _, err := tx.IsMinable(aklib.TestConfig); err == nil {
+	if _, err := tx.CheckMinable(aklib.TestConfig); err == nil {
 		t.Error("invalid isminable")
 	}
 
@@ -258,7 +258,7 @@ func TestTicket(t *testing.T) {
 			Time:         time.Now(),
 			Easiness:     aklib.TestConfig.TicketEasiness,
 			TicketOutput: make([]byte, 32),
-			Previous: [][]byte{
+			Previous: HashSlice{
 				make([]byte, 32),
 				make([]byte, 32),
 			},
@@ -310,7 +310,7 @@ var m = store{
 		MultiSigOuts: []*MultiSigOut{
 			&MultiSigOut{
 				N: 3,
-				Addresses: [][]byte{
+				Addresses: AddressSlice{
 					make([]byte, 32),
 					make([]byte, 32),
 					make([]byte, 32),
@@ -320,7 +320,7 @@ var m = store{
 			},
 			&MultiSigOut{
 				N: 2,
-				Addresses: [][]byte{
+				Addresses: AddressSlice{
 					make([]byte, 32),
 					make([]byte, 32),
 					make([]byte, 32),
@@ -339,7 +339,7 @@ var m = store{
 		MultiSigOuts: []*MultiSigOut{
 			&MultiSigOut{
 				N: 3,
-				Addresses: [][]byte{
+				Addresses: AddressSlice{
 					make([]byte, 32),
 					make([]byte, 32),
 					make([]byte, 32),
@@ -349,7 +349,7 @@ var m = store{
 			},
 			&MultiSigOut{
 				N: 2,
-				Addresses: [][]byte{
+				Addresses: AddressSlice{
 					make([]byte, 32),
 					make([]byte, 32),
 					make([]byte, 32),
@@ -458,7 +458,7 @@ func TestTicket2(t *testing.T) {
 					Value:   543,
 				},
 			},
-			Previous: [][]byte{
+			Previous: HashSlice{
 				make([]byte, 32),
 				make([]byte, 32),
 			},
@@ -506,7 +506,7 @@ func TestTicket2(t *testing.T) {
 	if err := tx2.checkAll(m.GetTX, aklib.TestConfig, false); err != nil {
 		t.Error(err)
 	}
-	typ, err := tx2.IsMinable(aklib.TestConfig)
+	typ, err := tx2.CheckMinable(aklib.TestConfig)
 	if err != nil {
 		t.Error(err)
 	}

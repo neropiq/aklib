@@ -22,30 +22,25 @@ package tx
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"time"
 
-	"github.com/AidosKuneen/aklib/arypack"
-
 	"github.com/AidosKuneen/aklib"
 	"github.com/AidosKuneen/aklib/address"
+	"github.com/AidosKuneen/aklib/arypack"
 	"github.com/AidosKuneen/cuckoo"
-	sha256 "github.com/AidosKuneen/sha256-simd"
 
 	"github.com/vmihailenco/msgpack"
 )
 
 //max length of tx and fields in a transaction.
 const (
-	MessageMax         = 255
-	TransactionMax     = 65535
-	SigMax             = 16
-	OutputsMax         = 32
-	MultisigMax        = 4
-	MultisigAddressMax = 32
-	PreviousMax        = 2
+	MessageMax     = 255
+	TransactionMax = 2000000
+	PreviousMax    = 2
 )
 
 var (
@@ -59,11 +54,27 @@ var (
 	Genesis = make([]byte, 32)
 )
 
+//Hash is a tx hash.
+type Hash []byte
+
+//Array converts slice to array
+func (h Hash) Array() [32]byte {
+	var h32 [32]byte
+	copy(h32[:], h)
+	return h32
+}
+
 //GetTXFunc gets tx.
 type GetTXFunc func(hash []byte) (*Body, error)
 
-//Bytes32 is a slice of 32 bytes
-type Bytes32 [][]byte
+//HashSlice is a slice of 32 bytes
+type HashSlice []Hash
+
+//Address  is an address of xmss.
+type Address []byte
+
+//AddressSlice is a slice of 32 bytes
+type AddressSlice HashSlice
 
 const (
 	//HashTypeExcludeOutputs is for excluding some outputs.
@@ -72,11 +83,11 @@ const (
 
 //type for minable tx.
 const (
-	RewardTicket = iota + 1
+	RewardTicket byte = iota + 1
 	RewardFee
 )
 
-func encodeMsgpack(b [][]byte, enc *msgpack.Encoder, n int) error {
+func encodeMsgpack(b []Hash, enc *msgpack.Encoder, n int) error {
 	dat := make([]byte, n*len(b))
 	for i, bb := range b {
 		copy(dat[i*n:], bb)
@@ -84,7 +95,7 @@ func encodeMsgpack(b [][]byte, enc *msgpack.Encoder, n int) error {
 	return enc.Encode(dat)
 }
 
-func decodeMsgpack(dec *msgpack.Decoder, n int) ([][]byte, error) {
+func decodeMsgpack(dec *msgpack.Decoder, n int) ([]Hash, error) {
 	var dat []byte
 	if err := dec.Decode(&dat); err != nil {
 		return nil, err
@@ -92,7 +103,7 @@ func decodeMsgpack(dec *msgpack.Decoder, n int) ([][]byte, error) {
 	if len(dat)%n != 0 {
 		return nil, errors.New("length of slice must be 3nN")
 	}
-	b := make([][]byte, len(dat)/n)
+	b := make([]Hash, len(dat)/n)
 	for j := range b {
 		b[j] = dat[j*n : (j+1)*n]
 	}
@@ -100,12 +111,12 @@ func decodeMsgpack(dec *msgpack.Decoder, n int) ([][]byte, error) {
 }
 
 //EncodeMsgpack  marshals slice of 32 bytes into valid JSON.
-func (b32 *Bytes32) EncodeMsgpack(enc *msgpack.Encoder) error {
+func (b32 *HashSlice) EncodeMsgpack(enc *msgpack.Encoder) error {
 	return encodeMsgpack(*b32, enc, 32)
 }
 
 //DecodeMsgpack  unmarshals msgpack bin to slice of 32 bytes.
-func (b32 *Bytes32) DecodeMsgpack(dec *msgpack.Decoder) error {
+func (b32 *HashSlice) DecodeMsgpack(dec *msgpack.Decoder) error {
 	b, err := decodeMsgpack(dec, 32)
 	if err != nil {
 		return err
@@ -114,52 +125,62 @@ func (b32 *Bytes32) DecodeMsgpack(dec *msgpack.Decoder) error {
 	return nil
 }
 
+//EncodeMsgpack  marshals slice of 32 bytes into valid JSON.
+func (b32 *AddressSlice) EncodeMsgpack(enc *msgpack.Encoder) error {
+	return (*HashSlice)(b32).EncodeMsgpack(enc)
+}
+
+//DecodeMsgpack  unmarshals msgpack bin to slice of 32 bytes.
+func (b32 *AddressSlice) DecodeMsgpack(dec *msgpack.Decoder) error {
+	return (*HashSlice)(b32).DecodeMsgpack(dec)
+}
+
 //Input is an input in transactions.
 type Input struct {
-	PreviousTX []byte `json:"previous_tx"` //32 bytes
-	Index      byte   `json:"index"`
+	PreviousTX Hash `json:"previous_tx"` //32 bytes
+	Index      byte `json:"index"`
 }
 
 //Output is an output in transactions.
 type Output struct {
-	Address []byte `json:"address"` //65 bytes
-	Value   uint64 `json:"value"`   //8 bytes
+	Address Address `json:"address"` //65 bytes
+	Value   uint64  `json:"value"`   //8 bytes
 }
 
 //MultiSigOut is an multisig output in transactions.
 type MultiSigOut struct {
-	N         byte    `json:"n"`         //0 means normal payment, or N out of len(Address) multisig.
-	Addresses Bytes32 `json:"addresses"` //< 65 * 32 bytes
-	Value     uint64  `json:"value"`     //8 bytes
+	N         byte         `json:"n"`         //0 means normal payment, or N out of len(Address) multisig.
+	Addresses AddressSlice `json:"addresses"` //< 65 * 32 bytes
+	Value     uint64       `json:"value"`     //8 bytes
 }
 
 //MultiSigIn is an multisig input in transactions.
 type MultiSigIn struct {
-	PreviousTX []byte `json:"previous_tx"` //32 bytes
-	Index      byte   `json:"index"`
+	PreviousTX Hash `json:"previous_tx"` //32 bytes
+	Index      byte `json:"index"`
 }
 
 //max size=7021 bytes, normally 363 bytes
 
 //Body is a Transactoin except signature.
 type Body struct {
-	Type         []byte         `json:"type"`          //4 bytes
-	Nonce        []uint32       `json:"nonce"`         //20*VarInt(<4)
-	Gnonce       uint32         `json:"g_nonce"`       //4 bytes
-	Time         time.Time      `json:"time"`          //4 bytes
-	Message      []byte         `json:"message"`       //<255 bytes
-	Inputs       []*Input       `json:"inputs"`        //<33 * 32 = 1056 bytes
-	MultiSigIns  []*MultiSigIn  `json:"multisig_ins"`  //<1032 * 4 = 4128 bytes
-	Outputs      []*Output      `json:"outputs"`       //<40 * 32 = 1280 bytes
-	MultiSigOuts []*MultiSigOut `json:"multisig_outs"` //<1032 * 4 = 4128 bytes
-	Previous     Bytes32        `json:"previous"`      //<8*32=256 bytes
-	Easiness     uint32         `json:"easiness"`      //1 byte //not used for now
-	LockTime     time.Time      `json:"lock_time"`     // 4 bytes
+	Type         []byte         `json:"type"`                    //4 bytes
+	Nonce        []uint32       `json:"nonce"`                   //20*VarInt(<4)
+	Gnonce       uint32         `json:"g_nonce"`                 //4 bytes
+	Time         time.Time      `json:"time"`                    //4 bytes
+	Message      []byte         `json:"message,omitempty"`       //<255 bytes
+	Inputs       []*Input       `json:"inputs,omitempty"`        //<33 * 32 = 1056 bytes
+	MultiSigIns  []*MultiSigIn  `json:"multisig_ins,omitempty"`  //<1032 * 4 = 4128 bytes
+	Outputs      []*Output      `json:"outputs,omitempty"`       //<40 * 32 = 1280 bytes
+	MultiSigOuts []*MultiSigOut `json:"multisig_outs,omitempty"` //<1032 * 4 = 4128 bytes
+	Previous     HashSlice      `json:"previous"`                //<8*32=256 bytes
+	Easiness     uint32         `json:"easiness"`                //1 byte //not used for now
+	LockTime     time.Time      `json:"lock_time"`               // 4 bytes
 	HashType     byte           `json:"hash_type"`
-	TicketInput  []byte         `json:"ticket_input"`
-	TicketOutput []byte         `json:"ticket_output"`
-	Scripts      [][]byte       `json:"scripts"` //not used
-	Reserved     []byte         `json:"-"`       //not used
+	TicketInput  Hash           `json:"ticket_input,omitempty"`
+	TicketOutput Address        `json:"ticket_output,omitempty"`
+	Scripts      [][]byte       `json:"scripts,omitempty"` //not used
+	Reserved     []byte         `json:"-"`                 //not used
 }
 
 //Signatures is a slice of Signature
@@ -171,8 +192,8 @@ type Transaction struct {
 	Signatures `json:"signatures"`
 }
 
-//IsMinable returns reward type (fee or ticket) if tx is minable.
-func (tx *Transaction) IsMinable(cfg *aklib.Config) (int, error) {
+//CheckMinable returns reward type (fee or ticket) if tx is minable.
+func (tx *Transaction) CheckMinable(cfg *aklib.Config) (byte, error) {
 	if err := tx.check(cfg, false); err != nil {
 		return 0, err
 	}
@@ -190,12 +211,25 @@ func (tx *Transaction) IsMinable(cfg *aklib.Config) (int, error) {
 	return 0, errors.New("incorrect minable tx")
 }
 
+//CheckAllMinable returns reward type (fee or ticket) if tx is minable.
+func (tx *Transaction) CheckAllMinable(getTX GetTXFunc, cfg *aklib.Config) (int, error) {
+	return 0, tx.checkAll(getTX, cfg, false)
+}
+
 //Check checks the tx.
 func (tx *Transaction) Check(cfg *aklib.Config) error {
 	return tx.check(cfg, true)
 }
 
+//Size returns tx size.
+func (tx *Transaction) Size() int {
+	return len(arypack.Marshal(tx))
+}
+
 func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
+	if tx.Size() > TransactionMax {
+		return errors.New("tx size is too big")
+	}
 	if tx.Body == nil {
 		return errors.New("body is null")
 	}
@@ -213,9 +247,6 @@ func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
 	}
 	if len(tx.Message) > MessageMax {
 		return fmt.Errorf("message length must be under %d bytes", MessageMax)
-	}
-	if len(tx.Inputs) > SigMax {
-		return fmt.Errorf("number of inputs must be under %d", SigMax)
 	}
 	for n, i := range tx.Inputs {
 		if len(i.PreviousTX) != 32 {
@@ -238,9 +269,6 @@ func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
 		}
 	}
 
-	if len(tx.Outputs) > OutputsMax {
-		return fmt.Errorf("number of output must be %d", OutputsMax)
-	}
 	for n, o := range tx.Outputs {
 		if len(o.Address) != 32 {
 			return fmt.Errorf("address in outputs %d must be 32 bytes", n)
@@ -250,14 +278,7 @@ func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
 				n, aklib.ADKSupply)
 		}
 	}
-	if len(tx.MultiSigOuts) > MultisigMax {
-		return fmt.Errorf("number of multisig must be under %d", MultisigMax)
-	}
 	for n, o := range tx.MultiSigOuts {
-		if len(o.Addresses) > MultisigAddressMax {
-			return fmt.Errorf("number of addresses at multisig %d must be under %d",
-				n, MultisigAddressMax)
-		}
 		for i, a := range o.Addresses {
 			if len(a) != 32 {
 				return fmt.Errorf("address size at multisig %d must be 32 bytes", n)
@@ -290,9 +311,6 @@ func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
 	}
 	if !tx.LockTime.IsZero() && tx.LockTime.After(time.Now()) {
 		return errors.New("this tx is not unlocked yet")
-	}
-	if len(tx.Signatures) > SigMax {
-		return fmt.Errorf("number of signatures must be under %d", SigMax)
 	}
 	if tx.HashType != 0 && tx.HashType&HashTypeExcludeOutputs != HashTypeExcludeOutputs {
 		return fmt.Errorf("invalid hashtype %d", tx.HashType)
@@ -360,15 +378,21 @@ func (tx *Transaction) hasValidHashes(cfg *aklib.Config, includePow bool) error 
 }
 
 //Hash reteurns hash of tx.
-func (tx *Transaction) Hash() []byte {
+func (tx *Transaction) Hash() Hash {
 	hh := sha256.Sum256(arypack.Marshal(tx))
+	return hh[:]
+}
+
+//Hash reteurns hash of signature.
+func (sig *Signatures) Hash() Hash {
+	hh := sha256.Sum256(arypack.Marshal(sig))
 	return hh[:]
 }
 
 //NoExistHashes returns tx hashes which are not found.
 //getTx must return err if tx is not found.
-func (tx *Transaction) NoExistHashes(getTX GetTXFunc) [][]byte {
-	hs := make([][]byte, 0, len(tx.Previous)+len(tx.Inputs))
+func (tx *Transaction) NoExistHashes(getTX GetTXFunc) []Hash {
+	hs := make([]Hash, 0, len(tx.Previous)+len(tx.Inputs))
 	for _, i := range tx.Previous {
 		if _, err := getTX(i); err != nil {
 			hs = append(hs, i)

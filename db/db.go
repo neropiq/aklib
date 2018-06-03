@@ -21,20 +21,28 @@
 package db
 
 import (
+	"log"
 	"os"
+	"time"
 
+	"github.com/AidosKuneen/aklib/arypack"
 	"github.com/dgraph-io/badger"
 )
 
 //Headers for DB key.
 const (
-	HeaderTxBody byte = iota
+	HeaderTxBody byte = iota + 1
 	HeaderTxSig
 	HeaderBalance
 	HeaderNodeIP
 	HeaderNodeSK
-	HeaderStatements
 	HeaderWalletSK
+	HeaderFeeTx
+	HeaderTicketTx
+	HeaderLeaves
+	HeaderUnresolvedTx
+	HeaderUnresolvedInfo
+	HeaderBrokenTx
 )
 
 const dbDir = "./db"
@@ -50,7 +58,19 @@ func Open(dir string) (*badger.DB, error) {
 	opts.SyncWrites = false
 	opts.Dir = dir
 	opts.ValueDir = dir
-	return badger.Open(opts)
+	db, err := badger.Open(opts)
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		for {
+			time.Sleep(time.Hour)
+			if err := db.RunValueLogGC(0.5); err != nil {
+				log.Println(err)
+			}
+		}
+	}()
+	return db, nil
 }
 
 //Copy copies db to toDir.
@@ -89,4 +109,31 @@ func Copy(db *badger.DB, todir string) {
 //Key return h+okey
 func Key(okey []byte, h byte) []byte {
 	return append([]byte{h}, okey...)
+}
+
+//Get get a data from DB.
+func Get(txn *badger.Txn, key []byte, dat interface{}, header byte) error {
+	item, err := txn.Get(append([]byte{header}, key...))
+	if err != nil {
+		return err
+	}
+	val, err := item.ValueCopy(nil)
+	if err != badger.ErrConflict && err != nil {
+		return err
+	}
+	return arypack.Unmarshal(val, dat)
+}
+
+//Put puts a dat into db.
+func Put(txn *badger.Txn, key []byte, dat interface{}, header byte) error {
+	err := txn.Set(append([]byte{header}, key...), arypack.Marshal(dat))
+	if err == badger.ErrConflict {
+		return nil
+	}
+	return err
+}
+
+//Del deletes a dat from db.
+func Del(txn *badger.Txn, key []byte, header byte) error {
+	return txn.Delete(append([]byte{header}, key...))
 }
