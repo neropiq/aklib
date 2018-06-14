@@ -23,17 +23,22 @@ are required to compile this.
 
 ```go
 	import "github.com/AidosKuneen/aklib/tx"
+	import "github.com/AidosKuneen/aklib"
 
-	tx:=tx.New()
-	if err := tx.Check(MainConfig); err == nil {
+	var tx1,tx2,tx3,tx4 tx.Hash
+	var adr1,adr2,adr3 tx.Address
+	tr:=tx.New(aklib.MainConfig,tx1,tx2)
+	tr.AddInput(tx3, 0)
+	tr.AddMultisigIn(tx4, 1)
+	tr.AddOutput(adr1, 111)
+	tr.AddMultisigOut(3, 2, adr1, adr2, adr3)
+	if err := tr.PoW(); err != nil {
 	}
-	if err := tx.CheckAll(GetTxFunction, MainConfig); err == nil {
+	if err := tr.Check(MainConfig,tx.TxNormal); err == nil {
 	}
-	if err := tx.PoW(); err != nil {
+	if err := tr.CheckAll(GetTxFunction, aklib.MainConfig,TxNormal); err == nil {
 	}
-	h = tx.Hash()
-	b := tx.Body.Pack()
-	s := tx.Signatures.Pack()
+	h = tr.Hash()
 ```
 
 # Expected Time for PoW

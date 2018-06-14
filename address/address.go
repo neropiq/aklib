@@ -51,8 +51,8 @@ var heights = []byte{2, 10, 16, 20}
 
 //Signature is a signature for hashed-address..
 type Signature struct {
-	PublicKey []byte
-	Sig       []byte
+	PublicKey []byte `json:"public_key"`
+	Sig       []byte `json:"sig"`
 }
 
 //Address represents an address an assciated Merkle Tree in ADK.

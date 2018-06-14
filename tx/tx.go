@@ -40,18 +40,16 @@ import (
 const (
 	MessageMax     = 255
 	TransactionMax = 2000000
-	PreviousMax    = 2
+	ArrayMax       = 255
 )
 
 var (
-	//TxNormal is a type for nomal tx.
-	TxNormal = []byte{0xAD, 0xBF, 0x43, 0x01}
-	//TxConfirm is a type for confirmation tx.
-	TxConfirm = []byte{0xAD, 0xBF, 0x43, 0x02}
-	//TxVote is a type for voting tx.
-	TxVote = []byte{0xAD, 0xBF, 0x00, 0x03}
-	//Genesis tx hash
-	Genesis = make([]byte, 32)
+	//TypeNormal is a type for nomal tx.
+	typeNormal = []byte{0xAD, 0xBF, 0x43, 0x01}
+	//TypeConfirm is a type for confirmation tx.
+	typeConfirm = []byte{0xAD, 0xBF, 0x43, 0x02}
+	//TypeVote is a type for voting tx.
+	typeVote = []byte{0xAD, 0xBF, 0x00, 0x03}
 )
 
 //Hash is a tx hash.
@@ -76,15 +74,22 @@ type Address []byte
 //AddressSlice is a slice of 32 bytes
 type AddressSlice HashSlice
 
+//Types when hashing a tx.
 const (
 	//HashTypeExcludeOutputs is for excluding some outputs.
-	HashTypeExcludeOutputs = 0x10
+	HashTypeNormal           = 0x0
+	HashTypeExcludeOutputs   = 0x10
+	HashTypeExcludeTicketOut = 0x20
 )
+
+//Type is a tx type.
+type Type byte
 
 //type for minable tx.
 const (
-	RewardTicket byte = iota + 1
-	RewardFee
+	TxNormal Type = iota
+	TxRewardTicket
+	TxRewardFee
 )
 
 func encodeMsgpack(b []Hash, enc *msgpack.Encoder, n int) error {
@@ -176,7 +181,7 @@ type Body struct {
 	Previous     HashSlice      `json:"previous"`                //<8*32=256 bytes
 	Easiness     uint32         `json:"easiness"`                //1 byte //not used for now
 	LockTime     time.Time      `json:"lock_time"`               // 4 bytes
-	HashType     byte           `json:"hash_type"`
+	HashType     uint16         `json:"hash_type"`
 	TicketInput  Hash           `json:"ticket_input,omitempty"`
 	TicketOutput Address        `json:"ticket_output,omitempty"`
 	Scripts      [][]byte       `json:"scripts,omitempty"` //not used
@@ -192,85 +197,199 @@ type Transaction struct {
 	Signatures `json:"signatures"`
 }
 
-//CheckMinable returns reward type (fee or ticket) if tx is minable.
-func (tx *Transaction) CheckMinable(cfg *aklib.Config) (byte, error) {
-	if err := tx.check(cfg, false); err != nil {
-		return 0, err
+//New returns a transaction object.
+func New(s *aklib.Config, previous ...Hash) *Transaction {
+	return &Transaction{
+		Body: &Body{
+			Type:     typeNormal,
+			Time:     time.Now(),
+			Easiness: s.Easiness,
+			Previous: previous,
+		},
 	}
-	hs := tx.Hash()
-	if err := cuckoo.Verify(hs, tx.Nonce); err == nil {
-		return 0, errors.New("already mined")
-	}
-	n := tx.HashType & 0xf
-	if tx.HashType&HashTypeExcludeOutputs == HashTypeExcludeOutputs && n == 1 {
-		return RewardFee, nil
-	}
-	if tx.TicketOutput != nil {
-		return RewardTicket, nil
-	}
-	return 0, errors.New("incorrect minable tx")
 }
 
-//CheckAllMinable returns reward type (fee or ticket) if tx is minable.
-func (tx *Transaction) CheckAllMinable(getTX GetTXFunc, cfg *aklib.Config) (int, error) {
-	return 0, tx.checkAll(getTX, cfg, false)
+//IssueTicket make and does PoW for a  transaction for issuing tx.
+func IssueTicket(s *aklib.Config, ticketOut *address.Address, previous ...Hash) (*Transaction, error) {
+	tr := &Transaction{
+		Body: &Body{
+			Type:         typeNormal,
+			Time:         time.Now(),
+			Easiness:     s.TicketEasiness,
+			TicketOutput: ticketOut.Address(),
+			Previous:     previous,
+		},
+	}
+	return tr, tr.PoW()
 }
 
-//Check checks the tx.
-func (tx *Transaction) Check(cfg *aklib.Config) error {
-	return tx.check(cfg, true)
+//NewMinableFee returns a minable transaction by fee..
+func NewMinableFee(s *aklib.Config, previous ...Hash) *Transaction {
+	return &Transaction{
+		Body: &Body{
+			Type:     typeNormal,
+			Time:     time.Now(),
+			Easiness: s.Easiness,
+			HashType: HashTypeExcludeOutputs | 0x1,
+			Previous: previous,
+		},
+	}
+}
+
+//NewMinableTicket returns a minable transaction by ticket..
+func NewMinableTicket(s *aklib.Config, ticketIn Hash, previous ...Hash) *Transaction {
+	return &Transaction{
+		Body: &Body{
+			Type:        typeNormal,
+			Time:        time.Now(),
+			Easiness:    s.Easiness,
+			HashType:    HashTypeExcludeTicketOut,
+			Previous:    previous,
+			TicketInput: ticketIn,
+		},
+	}
+}
+
+//AddInput add an input into tx.
+func (body *Body) AddInput(h Hash, idx byte) {
+	body.Inputs = append(body.Inputs, &Input{
+		PreviousTX: h,
+		Index:      idx,
+	})
+}
+
+//AddOutput add an output into tx.
+func (body *Body) AddOutput(adr []byte, v uint64) {
+	body.Outputs = append(body.Outputs, &Output{
+		Address: adr,
+		Value:   v,
+	})
+}
+
+//AddMultisigIn add a multisig input into tx.
+func (body *Body) AddMultisigIn(h Hash, idx byte) {
+	body.MultiSigIns = append(body.MultiSigIns, &MultiSigIn{
+		PreviousTX: h,
+		Index:      idx,
+	})
+}
+
+//AddMultisigOut add a mulsig output into tx.
+func (body *Body) AddMultisigOut(n byte, v uint64, adrs ...[]byte) error {
+	if len(adrs) < int(n) {
+		return errors.New("length of adrs is less than n")
+	}
+	as := make(AddressSlice, len(adrs))
+	for i, adr := range adrs {
+		as[i] = adr
+	}
+	body.MultiSigOuts = append(body.MultiSigOuts, &MultiSigOut{
+		N:         n,
+		Addresses: as,
+		Value:     v,
+	})
+	return nil
+}
+
+//Sign sings the tx.
+func (tr *Transaction) Sign(a *address.Address) error {
+	dat, err := tr.bytesForSign()
+	if err != nil {
+		return err
+	}
+	tr.Signatures = append(tr.Signatures, a.Sign(dat))
+	return nil
+}
+
+//Signature returns  singture of the tx.
+func (tr *Transaction) Signature(a *address.Address) (*address.Signature, error) {
+	dat, err := tr.bytesForSign()
+	if err != nil {
+		return nil, err
+	}
+	return a.Sign(dat), nil
+}
+
+//AddSig adds a signature  to tx.
+func (tr *Transaction) AddSig(sig *address.Signature) {
+	tr.Signatures = append(tr.Signatures, sig)
 }
 
 //Size returns tx size.
-func (tx *Transaction) Size() int {
-	return len(arypack.Marshal(tx))
+func (tr *Transaction) Size() int {
+	return len(arypack.Marshal(tr))
 }
 
-func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
-	if tx.Size() > TransactionMax {
+//Check checks the tx.
+func (tr *Transaction) Check(cfg *aklib.Config, typ Type) error {
+	if typ != TxNormal &&
+		typ != TxRewardFee && typ != TxRewardTicket {
+		return errors.New("invalid reward type")
+	}
+	powed := true
+	if typ == TxRewardFee || typ == TxRewardTicket {
+		powed = false
+	}
+	if tr.Size() > TransactionMax {
 		return errors.New("tx size is too big")
 	}
-	if tx.Body == nil {
+	if tr.Body == nil {
 		return errors.New("body is null")
 	}
-	if tx.Type == nil || !bytes.Equal(tx.Type, TxNormal) {
+	if !bytes.Equal(tr.Type, typeNormal) {
 		return errors.New("invalid type")
 	}
-	if len(tx.Nonce) != cuckoo.ProofSize {
-		return fmt.Errorf("nonce must be %d size", cuckoo.ProofSize)
+	switch powed {
+	case true:
+		if len(tr.Nonce) != cuckoo.ProofSize {
+			return fmt.Errorf("nonce must be %d size", cuckoo.ProofSize)
+		}
+		if err := cuckoo.Verify(tr.hashForPoW(), tr.Nonce); err != nil {
+			return err
+		}
+	case false:
+		if len(tr.Nonce) != 0 {
+			return fmt.Errorf("nonce must be 0 size")
+		}
 	}
-	if err := cuckoo.Verify(tx.hashForPoW(), tx.Nonce); includePow && err != nil {
-		return err
-	}
-	if tx.Time.After(time.Now()) {
+	if tr.Time.After(time.Now()) {
 		return errors.New("timestamp is in future")
 	}
-	if len(tx.Message) > MessageMax {
+	if len(tr.Message) > MessageMax {
 		return fmt.Errorf("message length must be under %d bytes", MessageMax)
 	}
-	for n, i := range tx.Inputs {
+	if len(tr.Inputs) > ArrayMax {
+		return errors.New("length of inputs is over 255")
+	}
+	for n, i := range tr.Inputs {
 		if len(i.PreviousTX) != 32 {
 			return fmt.Errorf("previous tx hash at %d must be 32 bytes", n)
 		}
 		for j := 0; j < n; j++ {
-			if tx.Inputs[j].Index == i.Index && bytes.Equal(tx.Inputs[j].PreviousTX, i.PreviousTX) {
+			if tr.Inputs[j].Index == i.Index && bytes.Equal(tr.Inputs[j].PreviousTX, i.PreviousTX) {
 				return fmt.Errorf("input %d has a same previous and index at input %d", n, j)
 			}
 		}
 	}
-	for n, i := range tx.MultiSigIns {
+	if len(tr.MultiSigIns) > ArrayMax {
+		return errors.New("length of MultiSigIns is over 255")
+	}
+	for n, i := range tr.MultiSigIns {
 		if len(i.PreviousTX) != 32 {
 			return fmt.Errorf("previous tx hash at %d must be 32 bytes", n)
 		}
 		for j := 0; j < n; j++ {
-			if tx.Inputs[j].Index == i.Index && bytes.Equal(tx.MultiSigIns[j].PreviousTX, i.PreviousTX) {
+			if tr.MultiSigIns[j].Index == i.Index && bytes.Equal(tr.MultiSigIns[j].PreviousTX, i.PreviousTX) {
 				return fmt.Errorf("input %d has a same previous and index at input %d", n, j)
 			}
 		}
 	}
-
-	for n, o := range tx.Outputs {
-		if len(o.Address) != 32 {
+	if len(tr.Outputs) > ArrayMax {
+		return errors.New("length of Outputs is over 255")
+	}
+	for n, o := range tr.Outputs {
+		if !(typ == TxRewardFee &&
+			n == len(tr.Outputs)-1) && len(o.Address) != 32 {
 			return fmt.Errorf("address in outputs %d must be 32 bytes", n)
 		}
 		if o.Value > aklib.ADKSupply {
@@ -278,10 +397,20 @@ func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
 				n, aklib.ADKSupply)
 		}
 	}
-	for n, o := range tx.MultiSigOuts {
+	if typ == TxRewardFee &&
+		(len(tr.Outputs) == 0 || tr.Outputs[len(tr.Outputs)-1].Address != nil) {
+		return errors.New("last address of inputs must be nil")
+	}
+	if len(tr.MultiSigOuts) > ArrayMax {
+		return errors.New("length of MultiSigOuts is over 255")
+	}
+	for n, o := range tr.MultiSigOuts {
 		for i, a := range o.Addresses {
 			if len(a) != 32 {
 				return fmt.Errorf("address size at multisig %d must be 32 bytes", n)
+			}
+			if len(o.Addresses) > ArrayMax {
+				return errors.New("length of MultiSigOut Addresses is over 255")
 			}
 			for j := i + 1; j < len(o.Addresses); j++ {
 				if bytes.Equal(a, o.Addresses[j]) {
@@ -298,58 +427,108 @@ func (tx *Transaction) check(cfg *aklib.Config, includePow bool) error {
 				n, aklib.ADKSupply)
 		}
 	}
-	if len(tx.Previous) > PreviousMax || len(tx.Previous) == 0 {
-		return fmt.Errorf("number of previous tx must be under %d and must not be 0", PreviousMax)
+	if len(tr.Previous) == 0 {
+		return fmt.Errorf("number of previous tx must be over 0")
 	}
-	for n, i := range tx.Previous {
+	if len(tr.Previous) > ArrayMax {
+		return errors.New("length of Previous is over 255")
+	}
+	for n, i := range tr.Previous {
 		if len(i) != 32 {
 			return fmt.Errorf("tx hash size at previous tx %d must be 32 bytes", n)
 		}
+		for j := n + 1; j < len(tr.Previous); j++ {
+			if bytes.Equal(i, tr.Previous[j]) {
+				return fmt.Errorf("previous tx %d is same as %d", n, j)
+			}
+		}
 	}
-	if tx.Easiness > cfg.Easiness {
+	if tr.Easiness > cfg.Easiness {
 		return fmt.Errorf("Easiness must be %d", cfg.Easiness)
 	}
-	if !tx.LockTime.IsZero() && tx.LockTime.After(time.Now()) {
+	if !tr.LockTime.IsZero() && tr.LockTime.After(time.Now()) {
 		return errors.New("this tx is not unlocked yet")
 	}
-	if tx.HashType != 0 && tx.HashType&HashTypeExcludeOutputs != HashTypeExcludeOutputs {
-		return fmt.Errorf("invalid hashtype %d", tx.HashType)
+	if tr.HashType != 0 &&
+		(tr.HashType&HashTypeExcludeOutputs == 0 && tr.HashType&HashTypeExcludeTicketOut == 0) {
+		return fmt.Errorf("invalid hashtype %d", tr.HashType)
 	}
-	n := int(tx.HashType) & 0xf
-	if tx.HashType&HashTypeExcludeOutputs == HashTypeExcludeOutputs && n >= len(tx.Outputs) {
-		return fmt.Errorf("number of outputs of hashtype %d is too large", n)
+	n := int(tr.HashType) & 0xf
+	switch typ {
+	case TxRewardFee:
+		if tr.HashType&0xfff0 != HashTypeExcludeOutputs {
+			return errors.New("hashtype of reward with fee must be 0x1X")
+		}
+		if n != 1 {
+			return errors.New("hashtype must be 0x11")
+		}
+	case TxRewardTicket:
+		if tr.HashType&0xfff0 != 0x20 {
+			return errors.New("hashtype of reward with Ticket must be 0x2X")
+		}
 	}
-	if len(tx.Scripts) > 0 {
+	if tr.HashType&HashTypeExcludeOutputs != 0 && n > len(tr.Outputs) {
+		return fmt.Errorf("number of outputs  is too large for hashtype %d", n)
+	}
+	if tr.TicketInput != nil && len(tr.TicketInput) != 32 {
+		return errors.New("ticket intput must  be 32 bytes")
+	}
+	if tr.TicketOutput != nil && len(tr.TicketOutput) != 32 {
+		return errors.New("ticket output must  be 32 bytes")
+	}
+	switch typ {
+	case TxRewardTicket:
+		if tr.TicketOutput != nil {
+			return errors.New("ticket outtput must not be filled for RewardTicket")
+		}
+		if tr.TicketInput == nil {
+			return errors.New("ticket intput must  be filled for RewardTicket")
+		}
+	case TxRewardFee:
+		if tr.TicketInput != nil || tr.TicketOutput != nil {
+			return errors.New("cannot use ticket")
+		}
+	case TxNormal:
+		if tr.TicketInput != nil && tr.TicketOutput == nil {
+			return errors.New("ticket_output is nil but ticket_input is not nil")
+		}
+		if tr.TicketInput == nil && tr.TicketOutput != nil {
+			//Issuing a ticket
+			if len(tr.Inputs) > 0 || len(tr.MultiSigIns) > 0 || len(tr.Outputs) > 0 || len(tr.MultiSigOuts) > 0 || !tr.LockTime.IsZero() ||
+				tr.HashType != 0 || len(tr.Signatures) != 0 {
+				return errors.New("tx content for ticket must be empty")
+			}
+			if tr.Easiness > cfg.TicketEasiness {
+				return errors.New("PoW doesn't meet ticket difficulty")
+			}
+		}
+	}
+
+	if len(tr.Scripts) > 0 {
 		return errors.New("cannot use scriptsd")
 	}
-	if len(tx.Reserved) > 0 {
+	if len(tr.Reserved) > 0 {
 		return errors.New("cannot use reserved field")
 	}
-	if len(tx.TicketInput) > 0 && len(tx.TicketOutput) == 0 {
-		return errors.New("ticket_output is 0")
+
+	dat, err := tr.bytesForSign()
+	if err != nil {
+		return err
 	}
-	if len(tx.TicketInput) == 0 && len(tx.TicketOutput) > 0 {
-		//ticket
-		if len(tx.Inputs) > 0 || len(tx.MultiSigIns) > 0 || len(tx.Outputs) > 0 || len(tx.MultiSigOuts) > 0 || !tx.LockTime.IsZero() ||
-			tx.HashType != 0 {
-			return errors.New("tx content for ticket must be empty")
-		}
-		if tx.Easiness > cfg.TicketEasiness {
-			return errors.New("PoW doesn't meet ticket difficulty")
-		}
-	}
-	dat := tx.BytesForSign()
-	for n, sig := range tx.Signatures {
+	for n, sig := range tr.Signatures {
 		if !address.Verify(sig, dat) {
 			return fmt.Errorf("failed to verify a signature at %d", n)
 		}
-		for nn := n + 1; nn < len(tx.Signatures); nn++ {
-			if bytes.Equal(sig.PublicKey, tx.Signatures[nn].PublicKey) {
+		for nn := n + 1; nn < len(tr.Signatures); nn++ {
+			if bytes.Equal(sig.PublicKey, tr.Signatures[nn].PublicKey) {
 				return fmt.Errorf("there are same publik keys in signature at %d and %d", n, nn)
 			}
 		}
 	}
-	return tx.hasValidHashes(cfg, includePow)
+	if powed && !isValidHash(tr.Hash(), tr.Easiness) {
+		return errors.New("tx does not match easiness")
+	}
+	return nil
 }
 
 //isValidHash reteurns true if  hash bytes h meets difficulty.
@@ -358,28 +537,9 @@ func isValidHash(h []byte, e uint32) bool {
 	return ea <= e
 }
 
-//hasValidHashes reteurns true if  hashes in tx and tx hash  meets difficulty.
-func (tx *Transaction) hasValidHashes(cfg *aklib.Config, includePow bool) error {
-	h := tx.Hash()
-	if !isValidHash(h, tx.Easiness) && includePow {
-		return errors.New("tx hash doesn't not match easiness")
-	}
-	for _, i := range tx.Inputs {
-		if !isValidHash(i.PreviousTX, cfg.Easiness) {
-			return errors.New("inputs txs' hash doesn't not match easiness")
-		}
-	}
-	for _, p := range tx.Previous {
-		if !isValidHash(p, cfg.Easiness) {
-			return errors.New("previous txs' hash doesn't not match easiness")
-		}
-	}
-	return nil
-}
-
 //Hash reteurns hash of tx.
-func (tx *Transaction) Hash() Hash {
-	hh := sha256.Sum256(arypack.Marshal(tx))
+func (tr *Transaction) Hash() Hash {
+	hh := sha256.Sum256(arypack.Marshal(tr))
 	return hh[:]
 }
 
@@ -389,35 +549,10 @@ func (sig *Signatures) Hash() Hash {
 	return hh[:]
 }
 
-//NoExistHashes returns tx hashes which are not found.
-//getTx must return err if tx is not found.
-func (tx *Transaction) NoExistHashes(getTX GetTXFunc) []Hash {
-	hs := make([]Hash, 0, len(tx.Previous)+len(tx.Inputs))
-	for _, i := range tx.Previous {
-		if _, err := getTX(i); err != nil {
-			hs = append(hs, i)
-		}
-	}
-	for _, i := range tx.Inputs {
-		if _, err := getTX(i.PreviousTX); err != nil {
-			hs = append(hs, i.PreviousTX)
-		}
-	}
-	for _, i := range tx.MultiSigIns {
-		if _, err := getTX(i.PreviousTX); err != nil {
-			hs = append(hs, i.PreviousTX)
-		}
-	}
-	if tx.TicketInput != nil {
-		hs = append(hs, tx.TicketInput)
-	}
-	return hs
-}
-
-//CheckAll checks the tx, including other txs refered by the tx..
-//Genesis block must be saved in the store
-func (tx *Transaction) CheckAll(getTX GetTXFunc, cfg *aklib.Config) error {
-	return tx.checkAll(getTX, cfg, true)
+//Hash reteurns hash of body.
+func (body *Body) Hash() Hash {
+	hh := sha256.Sum256(arypack.Marshal(body))
+	return hh[:]
 }
 
 type addresses struct {
@@ -444,31 +579,33 @@ func hasUunused(adrs []*addresses) bool {
 	return false
 }
 
-func (tx *Transaction) checkAll(getTX GetTXFunc, cfg *aklib.Config, includePow bool) error {
-	if err := tx.check(cfg, includePow); err != nil {
+//CheckAll checks the tx, including other txs refered by the tx..
+//Genesis block must be saved in the store
+func (tr *Transaction) CheckAll(getTX GetTXFunc, cfg *aklib.Config, typ Type) error {
+	if err := tr.Check(cfg, typ); err != nil {
 		return err
 	}
-	for _, i := range tx.Previous {
+	for _, i := range tr.Previous {
 		if _, err := getTX(i); err != nil {
 			return err
 		}
 	}
 	var totalout uint64
-	for _, o := range tx.Outputs {
+	for _, o := range tr.Outputs {
 		totalout += o.Value
 	}
-	for _, o := range tx.MultiSigOuts {
+	for _, o := range tr.MultiSigOuts {
 		totalout += o.Value
 	}
 	var totalin uint64
-	adrs := make([]*addresses, 0, len(tx.Inputs)+1)
-	for _, sig := range tx.Signatures {
+	adrs := make([]*addresses, 0, len(tr.Inputs)+1)
+	for _, sig := range tr.Signatures {
 		hadr := sha256.Sum256(sig.PublicKey)
 		adrs = append(adrs, &addresses{
 			adr: hadr[:],
 		})
 	}
-	for n, inp := range tx.Inputs {
+	for n, inp := range tr.Inputs {
 		inTX, err := getTX(inp.PreviousTX)
 		if err != nil {
 			return err
@@ -482,7 +619,7 @@ func (tx *Transaction) checkAll(getTX GetTXFunc, cfg *aklib.Config, includePow b
 			return fmt.Errorf("no signature for input %d", n)
 		}
 	}
-	for n, inp := range tx.MultiSigIns {
+	for n, inp := range tr.MultiSigIns {
 		inTX, err := getTX(inp.PreviousTX)
 		if err != nil {
 			return err
@@ -502,8 +639,8 @@ func (tx *Transaction) checkAll(getTX GetTXFunc, cfg *aklib.Config, includePow b
 			return fmt.Errorf("invalid number of valid signatures %d in multisig %d, should be %d", exist, n, mul.N)
 		}
 	}
-	if len(tx.TicketInput) > 0 {
-		inTX, err := getTX(tx.TicketInput)
+	if len(tr.TicketInput) > 0 {
+		inTX, err := getTX(tr.TicketInput)
 		if err != nil {
 			return err
 		}
@@ -521,49 +658,37 @@ func (tx *Transaction) checkAll(getTX GetTXFunc, cfg *aklib.Config, includePow b
 	return nil
 }
 
-//BytesForSign returns a hash slice for  signinig
-func (tx *Transaction) BytesForSign() []byte {
-	return tx.partialbytes(true)
-}
-
-//PreHash returns a hash before PoW.
-func (tx *Transaction) PreHash() []byte {
-	bytes := tx.partialbytes(false)
-	hs := sha256.Sum256(bytes)
-	return hs[:]
-}
-
-func (tx *Transaction) partialbytes(isBodyOnly bool) []byte {
-	tx2 := tx.Clone()
+//bytesForSign returns a hash slice for  signinig
+func (tr *Transaction) bytesForSign() ([]byte, error) {
+	tx2 := tr.Clone()
 	tx2.Gnonce = 0
 	tx2.Nonce = nil
-	tx2.TicketOutput = nil
-	if tx.HashType&0xf0 == HashTypeExcludeOutputs {
-		exclude := int(tx.HashType & 0x0f)
-		for i := 0; i < exclude; i++ {
-			tx2.Outputs[len(tx.Outputs)-1-i].Address = nil
-			tx2.Outputs[len(tx.Outputs)-1-i].Value = 0
+	if tr.HashType&HashTypeExcludeTicketOut != 0 {
+		tx2.TicketOutput = nil
+	}
+	if tr.HashType&0xf0 == HashTypeExcludeOutputs {
+		exclude := int(tr.HashType & 0x0f)
+		if len(tx2.Outputs) < exclude {
+			return nil, errors.New("output length is less than one specified by hash_type")
 		}
+		tx2.Outputs = tx2.Outputs[:len(tr.Outputs)-exclude]
 	}
-	if isBodyOnly {
-		return arypack.Marshal(tx2.Body)
-	}
-	return arypack.Marshal(tx2)
+	return arypack.Marshal(tx2.Body), nil
 }
 
-func (tx *Transaction) hashForPoW() []byte {
-	nonce := tx.Nonce
-	tx.Nonce = nil
-	btx := arypack.Marshal(tx)
+func (tr *Transaction) hashForPoW() []byte {
+	nonce := tr.Nonce
+	tr.Nonce = nil
+	btx := arypack.Marshal(tr)
 	h := sha256.Sum256(btx)
-	tx.Nonce = nonce
+	tr.Nonce = nonce
 	return h[:]
 }
 
 //Clone clones tx.
-func (tx *Transaction) Clone() *Transaction {
+func (tr *Transaction) Clone() *Transaction {
 	var tx2 Transaction
-	if err := arypack.Unmarshal(arypack.Marshal(tx), &tx2); err != nil {
+	if err := arypack.Unmarshal(arypack.Marshal(tr), &tx2); err != nil {
 		panic(err)
 	}
 	return &tx2

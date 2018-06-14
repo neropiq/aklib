@@ -39,7 +39,7 @@ func (s source) Int63() int64 {
 		panic(err)
 	}
 	r := binary.BigEndian.Uint64(b)
-	return int64(r & 0x8fffffffffffffff)
+	return int64(r & 0x7fffffffffffffff)
 }
 
 func (s source) Uint64() uint64 {
