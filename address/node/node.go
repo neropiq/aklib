@@ -130,40 +130,47 @@ func (a *Address) PublicKey() []byte {
 func (a *Address) Address() []byte {
 	pub := a.privateKey.PublicKey()
 	hpub := sha256.Sum256(pub)
-	return hpub[:]
+	r := make([]byte, 32+3)
+	copy(r, a.prefixPub)
+	copy(r[len(a.prefixPub):], hpub[:])
+	return r
 }
 
 //Address58 returns base58 encoded public key.
 func (a *Address) Address58() string {
-	pref := a.prefixPub
-	hpub := a.Address()
-	p := make([]byte, len(hpub)+len(pref))
-	copy(p, pref)
-	copy(p[len(pref):], hpub)
+	return To58(a.Address())
+}
+
+//To58 converts address bytes to encode58 format.
+func To58(p []byte) string {
 	return prefixNodeString + address.Encode58(p)
 }
 
+//Pub58Height returns height of encoded public key.
+func Pub58Height(pub58 string, cfg *aklib.Config) (byte, error) {
+	pub, err := FromAddress58(pub58)
+	if err != nil {
+		return 0, err
+	}
+	for height := byte(Height20); height <= Height60; height++ {
+		pref := cfg.PrefixNode[height]
+		if bytes.Equal(pub[:len(pref)], pref) {
+			return height, nil
+		}
+	}
+	return 0, errors.New("invalid public key")
+}
+
 //FromAddress58 returns decode public key from base58 encoded string.
-func FromAddress58(pub58 string, cfg *aklib.Config) ([]byte, byte, error) {
+func FromAddress58(pub58 string) ([]byte, error) {
 	if pub58[:len(prefixNodeString)] != prefixNodeString {
-		return nil, 0, errors.New("invalid prefix string in public key")
+		return nil, errors.New("invalid prefix string in public key")
 	}
 	pub, err := address.Decode58(pub58[len(prefixNodeString):])
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
-	var height byte
-	for ; height <= Height60; height++ {
-		pref := cfg.PrefixNode[height]
-		if bytes.Equal(pub[:len(pref)], pref) {
-			break
-		}
-	}
-	if height > Height60 {
-		return nil, 0, errors.New("invalid prefix bytes in seed")
-	}
-	pub = pub[len(cfg.PrefixAdrs[height]):]
-	return pub, heights[height], nil
+	return pub, nil
 }
 
 type adr struct {

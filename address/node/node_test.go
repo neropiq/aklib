@@ -72,11 +72,19 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 	if pk58[:len(adr)] != adr {
 		t.Error("invalid address prefix")
 	}
-	pk, h2, err := FromAddress58(pk58, net)
+	pk581 := To58(a.Address())
+	if pk58 != pk581 {
+		t.Error("invalid To58")
+	}
+	pk, err := FromAddress58(pk58)
 	if err != nil {
 		t.Error(err)
 	}
-	if h2 != heights[h] {
+	h2, err := Pub58Height(pk58, net)
+	if err != nil {
+		t.Error(err)
+	}
+	if h2 != h {
 		t.Error("invalid height")
 	}
 	pk2 := a.Address()

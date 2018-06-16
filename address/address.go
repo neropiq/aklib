@@ -47,7 +47,8 @@ var (
 	prefixPrivString = "AKPRI"
 )
 
-var heights = []byte{2, 10, 16, 20}
+//Heights converts height byte to real height.
+var Heights = []byte{2, 10, 16, 20}
 
 //Signature is a signature for hashed-address..
 type Signature struct {
@@ -84,11 +85,11 @@ func New(h byte, seed []byte, config *aklib.Config) (*Address, error) {
 		return nil, errors.New("invalid height")
 	}
 	return &Address{
-		privateKey: xmss.NewMerkle(heights[h], seed),
+		privateKey: xmss.NewMerkle(Heights[h], seed),
 		Seed:       seed,
 		prefixPriv: config.PrefixPriv[h],
 		prefixPub:  config.PrefixAdrs[h],
-		Height:     heights[h],
+		Height:     Heights[h],
 	}, nil
 }
 
@@ -160,40 +161,69 @@ func (a *Address) PublicKey() []byte {
 func (a *Address) Address() []byte {
 	pub := a.privateKey.PublicKey()
 	hpub := sha256.Sum256(pub)
-	return hpub[:]
+	r := make([]byte, 32+3)
+	copy(r, a.prefixPub)
+	copy(r[3:], hpub[:])
+	return r
 }
 
 //Address58 returns base58 encoded address.
 func (a *Address) Address58() string {
-	pref := a.prefixPub
-	hpub := a.Address()
-	p := make([]byte, len(hpub)+len(pref))
-	copy(p, pref)
-	copy(p[len(pref):], hpub)
+	return To58(a.Address())
+}
+
+//To58 converts address bytes to encode58 format.
+func To58(p []byte) string {
 	return prefixAdrsString + Encode58(p)
 }
 
+//Pub58Height returns height of encoded public key.
+func Pub58Height(pub58 string, cfg *aklib.Config) (byte, error) {
+	pub, err := FromAddress58(pub58)
+	if err != nil {
+		return 0, err
+	}
+	for height := byte(Height2); height <= Height20; height++ {
+		pref := cfg.PrefixAdrs[height]
+		if bytes.Equal(pub[:len(pref)], pref) {
+			return height, nil
+		}
+	}
+	return 0, errors.New("invalid public key")
+}
+
 //FromAddress58 returns decode public key from base58 encoded string.
-func FromAddress58(pub58 string, cfg *aklib.Config) ([]byte, byte, error) {
+func FromAddress58(pub58 string) ([]byte, error) {
 	if pub58[:len(prefixAdrsString)] != prefixAdrsString {
-		return nil, 0, errors.New("invalid prefix string in public key")
+		return nil, errors.New("invalid prefix string in public key")
 	}
 	pub, err := Decode58(pub58[len(prefixAdrsString):])
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
-	var height byte
-	for ; height < Height20; height++ {
-		pref := cfg.PrefixAdrs[height]
-		if bytes.Equal(pub[:len(pref)], pref) {
-			break
-		}
+	return pub, nil
+}
+
+//Address returns address bytes from sig.
+func (sig *Signature) Address(cfg *aklib.Config) ([]byte, error) {
+	r := make([]byte, 32+3)
+	hadr := sha256.Sum256(sig.PublicKey)
+	h := 0
+	switch sig.PublicKey[0] {
+	case 2:
+		h = 0
+	case 10:
+		h = 1
+	case 16:
+		h = 2
+	case 20:
+		h = 3
+	default:
+		return nil, errors.New("invalid public key")
 	}
-	if height > Height20 {
-		return nil, 0, errors.New("invalid prefix bytes in seed")
-	}
-	pub = pub[len(cfg.PrefixAdrs[height]):]
-	return pub, heights[height], nil
+	copy(r, cfg.PrefixAdrs[h])
+	copy(r[3:], hadr[:])
+	return r, nil
 }
 
 type address struct {

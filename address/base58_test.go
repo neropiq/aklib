@@ -89,18 +89,19 @@ loop:
 }
 
 func BenchmarkBase58AAddr(b *testing.B) {
-	from := make([]byte, 32+3)
-	to := make([]byte, 32+3)
+	from := make([]byte, 33+3)
+	to := make([]byte, 33+3)
 	for i := range to {
 		to[i] = 0xff
 	}
 	es := []string{
-		// "ST1", "ST5", "ST8", "STA",
+		"ST1", "ST5", "ST8", "STA",
 		"YT1", "YT2", "YT3",
 		"ET1", "ET2", "ET3",
-		// "SM1", "SM5", "SM8", "SMA",
+		"SM1", "SM5", "SM8", "SMA",
 		"YM1", "YM2", "YM3",
-		"EM1", "EM2", "EM3"}
+		"EM1", "EM2", "EM3",
+	}
 
 loop:
 	for i := 0; i <= 0xff; i++ {
