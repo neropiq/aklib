@@ -43,8 +43,9 @@ type Config struct {
 	PrefixNkey     [][]byte
 	PrefixNode     [][]byte
 
-	DefaultPort    uint16
-	DefaultRPCPort uint16
+	DefaultPort         uint16
+	DefaultRPCPort      uint16
+	DefaultExplorerPort uint16
 
 	DNS          []SRV
 	MessageMagic uint32
@@ -79,8 +80,9 @@ var (
 			[]byte{0x14, 0x70, 0x63}, //EM2
 			[]byte{0x14, 0x70, 0x81}, //EM3
 		},
-		DefaultPort:    14270,
-		DefaultRPCPort: 14271,
+		DefaultPort:         14270,
+		DefaultRPCPort:      14271,
+		DefaultExplorerPort: 8080,
 		DNS: []SRV{
 			SRV{
 				Service: "",
@@ -119,8 +121,9 @@ var (
 			[]byte{0x14, 0x98, 0xf2}, //ET2
 			[]byte{0x14, 0x99, 0x10}, //ET3
 		},
-		DefaultPort:    14370,
-		DefaultRPCPort: 14371,
+		DefaultPort:         14370,
+		DefaultRPCPort:      14371,
+		DefaultExplorerPort: 8080,
 		DNS: []SRV{
 			SRV{
 				Service: "",
@@ -159,8 +162,9 @@ var (
 			[]byte{0x14, 0x98, 0xf2}, //ET2
 			[]byte{0x14, 0x99, 0x10}, //ET3
 		},
-		DefaultPort:    14370,
-		DefaultRPCPort: 14371,
+		DefaultPort:         14370,
+		DefaultRPCPort:      14371,
+		DefaultExplorerPort: 8080,
 		DNS: []SRV{
 			SRV{
 				Service: "seeds",
