@@ -48,8 +48,8 @@ const (
 //Open open  or make a badger db.
 func Open(dir string) (*badger.DB, error) {
 	if _, err := os.Stat(dir); err != nil {
-		if err := os.Mkdir(dir, 0755); err != nil {
-			return nil, err
+		if err2 := os.Mkdir(dir, 0755); err2 != nil {
+			return nil, err2
 		}
 	}
 	opts := badger.DefaultOptions
@@ -87,9 +87,9 @@ func Copy(db *badger.DB, todir string) {
 			for it.Rewind(); it.Valid(); it.Next() {
 				item := it.Item()
 				k := item.Key()
-				v, err := item.ValueCopy(nil)
-				if err != nil {
-					return err
+				v, err2 := item.ValueCopy(nil)
+				if err2 != nil {
+					return err2
 				}
 				if err := txn2.Set(k, v); err != nil {
 					return err

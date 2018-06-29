@@ -43,10 +43,6 @@ const (
 var (
 	//TypeNormal is a type for nomal tx.
 	typeNormal = []byte{0xAD, 0xBF, 0x43, 0x01}
-	//TypeConfirm is a type for confirmation tx.
-	typeConfirm = []byte{0xAD, 0xBF, 0x43, 0x02}
-	//TypeVote is a type for voting tx.
-	typeVote = []byte{0xAD, 0xBF, 0x00, 0x03}
 )
 
 //Hash is a tx hash.

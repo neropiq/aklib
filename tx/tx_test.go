@@ -135,9 +135,9 @@ func TestTX(t *testing.T) {
 	}
 
 	tr = New(aklib.DebugConfig, zero, one)
-	sig, err := tr.Signature(a[0])
-	if err != nil {
-		t.Error(err)
+	sig, err2 := tr.Signature(a[0])
+	if err2 != nil {
+		t.Error(err2)
 	}
 	tr.AddSig(sig)
 	if err := tr.PoW(); err != nil {
@@ -214,13 +214,16 @@ func TestTX(t *testing.T) {
 	if err := tr.AddOutput(aklib.DebugConfig, a[0].Address58(), 1234); err != nil {
 		t.Error(err)
 	}
-	hs1, err := tr.bytesForSign()
-	if err != nil {
-		t.Error(err)
+	hs1, err2 := tr.bytesForSign()
+	if err2 != nil {
+		t.Error(err2)
 	}
 	tr.Outputs[0].Address = nil
 	tr.Outputs[0].Value = 234
-	hs2, err := tr.bytesForSign()
+	hs2, err2 := tr.bytesForSign()
+	if err2 != nil {
+		t.Error(err2)
+	}
 	if !bytes.Equal(hs1, hs2) {
 		t.Error("invalid hashtype")
 	}
@@ -263,12 +266,15 @@ func TestTX(t *testing.T) {
 	tr.HashType = 0x20
 	tr.TicketInput = one
 	tr.TicketInput = two
-	hs1, err = tr.bytesForSign()
-	if err != nil {
-		t.Error(err)
+	hs1, err2 = tr.bytesForSign()
+	if err2 != nil {
+		t.Error(err2)
 	}
 	tr.TicketOutput = nil
-	hs2, err = tr.bytesForSign()
+	hs2, err2 = tr.bytesForSign()
+	if err2 != nil {
+		t.Error(err2)
+	}
 	if !bytes.Equal(hs1, hs2) {
 		t.Error("invalid hashtype")
 	}
