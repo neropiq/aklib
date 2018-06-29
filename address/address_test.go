@@ -172,3 +172,16 @@ func TestAddress2(t *testing.T) {
 		t.Error("signature is invalid")
 	}
 }
+
+func TestAddress3(t *testing.T) {
+	seed := GenerateSeed()
+	a, err := New(Height10, seed, aklib.TestConfig)
+	if err != nil {
+		t.Error(err)
+	}
+	pwd1 := []byte("qewrty123")
+	s58 := a.Seed58(pwd1)
+	t.Log(s58)
+	t.Log(a.Address58())
+	// t.Fail()
+}

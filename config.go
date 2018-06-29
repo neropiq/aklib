@@ -123,7 +123,7 @@ var (
 		},
 		DefaultPort:         14370,
 		DefaultRPCPort:      14371,
-		DefaultExplorerPort: 8080,
+		DefaultExplorerPort: 8081,
 		DNS: []SRV{
 			SRV{
 				Service: "",
@@ -164,16 +164,16 @@ var (
 		},
 		DefaultPort:         14370,
 		DefaultRPCPort:      14371,
-		DefaultExplorerPort: 8080,
+		DefaultExplorerPort: 8081,
 		DNS: []SRV{
 			SRV{
-				Service: "seeds",
+				Service: "testnetseeds",
 				Name:    "aidoskuneen.com",
 			},
 		},
 		MessageMagic: 0xD9CBA322,
 		Genesis: map[string]uint64{
-			"": ADKSupply,
+			"AKADRST54Kg6dSJy7YjJBrsxisJjibnwn3hW7hhL19VSAQw4WWXC59wSrx": ADKSupply, //AKPRIVT5HssaAPgtDgj1Vpyz2bJRdZqmuFkGGhBJv5Dy8ckahFkdQAYbphmykyA,qewrty123
 		},
 	}
 )
