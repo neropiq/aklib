@@ -21,7 +21,6 @@
 package db
 
 import (
-	"log"
 	"os"
 	"time"
 
@@ -35,18 +34,15 @@ type Header byte
 //Headers for DB key.
 const (
 	HeaderTxInfo Header = iota + 1
-	HeaderTxBody
 	HeaderTxSig
-	HeaderBalance
 	HeaderNodeIP
-	HeaderNodeSK
-	HeaderWalletSK
 	HeaderTxRewardFee
 	HeaderTxRewardTicket
 	HeaderLeaves
 	HeaderUnresolvedTx
 	HeaderUnresolvedInfo
 	HeaderBrokenTx
+	HeaderAddressToTx
 )
 
 //Open open  or make a badger db.
@@ -65,10 +61,12 @@ func Open(dir string) (*badger.DB, error) {
 		return nil, err
 	}
 	go func() {
-		for {
-			time.Sleep(time.Hour)
-			if err := db.RunValueLogGC(0.5); err != nil {
-				log.Println(err)
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+		again:
+			if err := db.RunValueLogGC(0.7); err == nil {
+				goto again
 			}
 		}
 	}()

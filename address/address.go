@@ -226,6 +226,11 @@ func (sig *Signature) Address(cfg *aklib.Config) ([]byte, error) {
 	return r, nil
 }
 
+//Index returns signature indes(idx_sig).
+func (sig *Signature) Index() (uint32, error) {
+	return xmss.IndexFromSig(sig.Sig)
+}
+
 type address struct {
 	Seed       []byte
 	PrivateKey *xmss.Merkle
