@@ -91,8 +91,8 @@ func Copy(db *badger.DB, todir string) {
 				if err2 != nil {
 					return err2
 				}
-				if err := txn2.Set(k, v); err != nil {
-					return err
+				if err2 := txn2.Set(k, v); err2 != nil {
+					return err2
 				}
 			}
 			return nil
