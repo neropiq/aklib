@@ -36,7 +36,7 @@ func (tx *Transaction) PoW() error {
 		hs := tx.hashForPoW()
 		nonces, found := cu.PoW(hs)
 		if found {
-			if len(nonces) == cuckoo.ProofSize {
+			if len(nonces) != cuckoo.ProofSize {
 				return fmt.Errorf("nonce from cuckoo PoW is wrong %d", len(tx.Nonce))
 			}
 			tx.Nonce = nonces
@@ -49,7 +49,7 @@ func (tx *Transaction) PoW() error {
 	if tx.Gnonce == maxcnt {
 		return errors.New("failed to PoW")
 	}
-	if len(tx.Nonce) == cuckoo.ProofSize {
+	if len(tx.Nonce) != cuckoo.ProofSize {
 		return fmt.Errorf("tx nonce is wrong %d", len(tx.Nonce))
 	}
 	return nil
