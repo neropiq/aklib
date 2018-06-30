@@ -89,7 +89,7 @@ func (tr *Transaction) Check(cfg *aklib.Config, typ Type) error {
 	switch powed {
 	case true:
 		if len(tr.Nonce) != cuckoo.ProofSize {
-			return fmt.Errorf("nonce must be %d size", cuckoo.ProofSize)
+			return fmt.Errorf("nonce must be %d size, but %d", cuckoo.ProofSize, len(tr.Nonce))
 		}
 		if err := cuckoo.Verify(tr.hashForPoW(), tr.Nonce); err != nil {
 			return err
