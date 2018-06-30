@@ -37,7 +37,7 @@ func (tx *Transaction) PoW() error {
 		nonces, found := cu.PoW(hs)
 		if found {
 			if len(nonces) == cuckoo.ProofSize {
-				return fmt.Errorf("something was wrong %d", len(tx.Nonce))
+				return fmt.Errorf("nonce from cuckoo PoW is wrong %d", len(tx.Nonce))
 			}
 			tx.Nonce = nonces
 			txh := tx.Hash()
@@ -50,7 +50,7 @@ func (tx *Transaction) PoW() error {
 		return errors.New("failed to PoW")
 	}
 	if len(tx.Nonce) == cuckoo.ProofSize {
-		return fmt.Errorf("something was wrong %d", len(tx.Nonce))
+		return fmt.Errorf("tx nonce is wrong %d", len(tx.Nonce))
 	}
 	return nil
 }
