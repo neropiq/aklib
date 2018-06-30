@@ -179,4 +179,4 @@ var (
 )
 
 //Configs is a list of nets.
-var Configs = []*Config{MainConfig, TestConfig}
+var Configs = []*Config{MainConfig, TestConfig, DebugConfig}
