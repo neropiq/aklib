@@ -22,6 +22,7 @@ package tx
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/AidosKuneen/cuckoo"
 )
@@ -35,6 +36,9 @@ func (tx *Transaction) PoW() error {
 		hs := tx.hashForPoW()
 		nonces, found := cu.PoW(hs)
 		if found {
+			if len(nonces) == cuckoo.ProofSize {
+				return fmt.Errorf("something was wrong %d", len(tx.Nonce))
+			}
 			tx.Nonce = nonces
 			txh := tx.Hash()
 			if isValidHash(txh, tx.Easiness) {
@@ -44,6 +48,9 @@ func (tx *Transaction) PoW() error {
 	}
 	if tx.Gnonce == maxcnt {
 		return errors.New("failed to PoW")
+	}
+	if len(tx.Nonce) == cuckoo.ProofSize {
+		return fmt.Errorf("something was wrong %d", len(tx.Nonce))
 	}
 	return nil
 }
