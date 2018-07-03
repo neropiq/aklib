@@ -299,12 +299,6 @@ func (sig *Signatures) Hash() Hash {
 	return hh[:]
 }
 
-//Hash reteurns hash of body.
-func (body *Body) Hash() Hash {
-	hh := sha256.Sum256(arypack.Marshal(body))
-	return hh[:]
-}
-
 //bytesForSign returns a hash slice for  signinig
 func (tr *Transaction) bytesForSign() ([]byte, error) {
 	tx2 := tr.Clone()

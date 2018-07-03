@@ -21,9 +21,7 @@
 package tx
 
 import (
-	"encoding/hex"
 	"errors"
-	"fmt"
 
 	"github.com/AidosKuneen/cuckoo"
 )
@@ -37,9 +35,6 @@ func (tx *Transaction) PoW() error {
 		hs := tx.hashForPoW()
 		nonces, found := cu.PoW(hs)
 		if found {
-			if len(nonces) != cuckoo.ProofSize {
-				return fmt.Errorf("nonce from cuckoo PoW is wrong %d %d %s", len(tx.Nonce), tx.Gnonce, hex.EncodeToString(tx.hashForPoW()))
-			}
 			tx.Nonce = nonces
 			txh := tx.Hash()
 			if isValidHash(txh, tx.Easiness) {
