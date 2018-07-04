@@ -118,7 +118,7 @@ func Get(txn *badger.Txn, key []byte, dat interface{}, header Header) error {
 		return err
 	}
 	val, err := item.ValueCopy(nil)
-	if err != badger.ErrConflict && err != nil {
+	if err != nil {
 		return err
 	}
 	return arypack.Unmarshal(val, dat)
@@ -126,11 +126,7 @@ func Get(txn *badger.Txn, key []byte, dat interface{}, header Header) error {
 
 //Put puts a dat into db.
 func Put(txn *badger.Txn, key []byte, dat interface{}, header Header) error {
-	err := txn.Set(append([]byte{byte(header)}, key...), arypack.Marshal(dat))
-	if err == badger.ErrConflict {
-		return nil
-	}
-	return err
+	return txn.Set(append([]byte{byte(header)}, key...), arypack.Marshal(dat))
 }
 
 //Del deletes a dat from db.
