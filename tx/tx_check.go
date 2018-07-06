@@ -278,8 +278,7 @@ func (tr *Transaction) Check(cfg *aklib.Config, typ Type) error {
 	return nil
 }
 
-//Fee calculates fee in a tx..
-func (tr *Transaction) Fee(getTX GetTXFunc, cfg *aklib.Config) (uint64, error) {
+func (tr *Transaction) total(getTX GetTXFunc, cfg *aklib.Config) (uint64, uint64, error) {
 	var totalout uint64
 	for _, o := range tr.Outputs {
 		totalout += o.Value
@@ -292,7 +291,7 @@ func (tr *Transaction) Fee(getTX GetTXFunc, cfg *aklib.Config) (uint64, error) {
 	for _, sig := range tr.Signatures {
 		a, err := sig.Address(cfg)
 		if err != nil {
-			return 0, err
+			return 0, 0, err
 		}
 		adrs = append(adrs, &addresses{
 			adr: a,
@@ -301,24 +300,24 @@ func (tr *Transaction) Fee(getTX GetTXFunc, cfg *aklib.Config) (uint64, error) {
 	for n, inp := range tr.Inputs {
 		inTX, err := getTX(inp.PreviousTX)
 		if err != nil {
-			return 0, err
+			return 0, 0, err
 		}
 		if len(inTX.Outputs) <= int(inp.Index) {
-			return 0, fmt.Errorf("invalid input index, should be under  %d", len(inTX.Outputs))
+			return 0, 0, fmt.Errorf("invalid input index, should be under  %d", len(inTX.Outputs))
 		}
 		totalin += inTX.Outputs[inp.Index].Value
 		inTXAdr := inTX.Outputs[inp.Index].Address
 		if !hasAddress(adrs, inTXAdr) {
-			return 0, fmt.Errorf("no signature for input %d", n)
+			return 0, 0, fmt.Errorf("no signature for input %d", n)
 		}
 	}
 	for n, inp := range tr.MultiSigIns {
 		inTX, err := getTX(inp.PreviousTX)
 		if err != nil {
-			return 0, err
+			return 0, 0, err
 		}
 		if len(inTX.MultiSigOuts) <= int(inp.Index) {
-			return 0, fmt.Errorf("invalid multisig index, should be under  %d", len(inTX.MultiSigOuts))
+			return 0, 0, fmt.Errorf("invalid multisig index, should be under  %d", len(inTX.MultiSigOuts))
 		}
 		mul := inTX.MultiSigOuts[inp.Index]
 		totalin += mul.Value
@@ -329,26 +328,22 @@ func (tr *Transaction) Fee(getTX GetTXFunc, cfg *aklib.Config) (uint64, error) {
 			}
 		}
 		if exist != int(mul.N) {
-			return 0, fmt.Errorf("invalid number of valid signatures %d in multisig %d, should be %d", exist, n, mul.N)
+			return 0, 0, fmt.Errorf("invalid number of valid signatures %d in multisig %d, should be %d", exist, n, mul.N)
 		}
 	}
 	if len(tr.TicketInput) > 0 {
 		inTX, err := getTX(tr.TicketInput)
 		if err != nil {
-			return 0, err
+			return 0, 0, err
 		}
 		if !hasAddress(adrs, inTX.TicketOutput) {
-			return 0, errors.New("cannot verify the ticket input")
+			return 0, 0, errors.New("cannot verify the ticket input")
 		}
 	}
 	if hasUunused(adrs) {
-		return 0, errors.New("there are(is) unsed signature")
+		return 0, 0, errors.New("there are(is) unsed signature")
 	}
-	if totalin < totalout {
-		return 0, fmt.Errorf("total output ADK %v > one of output %v",
-			totalout, totalin)
-	}
-	return totalin - totalout, nil
+	return totalin, totalout, nil
 }
 
 //CheckAll checks the tx, including other txs refered by the tx..
@@ -362,16 +357,13 @@ func (tr *Transaction) CheckAll(getTX GetTXFunc, cfg *aklib.Config, typ Type) er
 			return err
 		}
 	}
-	fee, err := tr.Fee(getTX, cfg)
+	tin, tout, err := tr.total(getTX, cfg)
 	if err != nil {
 		return err
 	}
-	if fee > 0 && (typ == TxNormal || typ == TxRewardTicket) {
-		return fmt.Errorf("total input ADK does not equal to one of output, diff=%v",
-			fee)
-	}
-	if fee == 0 && typ == TxRewardFee {
-		return errors.New("total input ADK does equal to one of output")
+	if tin != tout {
+		return fmt.Errorf("total input ADK %v does not equal to one of output %v",
+			tin, tout)
 	}
 	return nil
 }
