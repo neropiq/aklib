@@ -43,6 +43,9 @@ const (
 	HeaderUnresolvedInfo
 	HeaderBrokenTx
 	HeaderAddressToTx
+	HeaderWallet
+	HeaderWalletAddress
+	HeaderWalletHistory
 )
 
 //Open open  or make a badger db.

@@ -35,9 +35,10 @@ import (
 
 //max length of tx and fields in a transaction.
 const (
-	MessageMax     = 255
-	TransactionMax = 2000000
-	ArrayMax       = 255
+	MessageMax          = 255
+	TransactionMax      = 2000000
+	ArrayMax            = 255
+	DefaultPreviousSize = 2
 )
 
 var (
@@ -205,7 +206,7 @@ func (body *Body) AddOutput(cfg *aklib.Config, adr string, v uint64) error {
 	var pub []byte
 	var err error
 	if adr != "" {
-		pub, err = address.FromAddress58(adr)
+		pub, _, err = address.ParseAddress58(adr, cfg)
 		if err != nil {
 			return err
 		}
@@ -235,7 +236,7 @@ func (body *Body) AddMultisigOut(cfg *aklib.Config, n byte, v uint64, adrs ...st
 	}
 	as := make([]Address, len(adrs))
 	for i, adr := range adrs {
-		pub, err := address.FromAddress58(adr)
+		pub, _, err := address.ParseAddress58(adr, cfg)
 		if err != nil {
 			return err
 		}
@@ -290,12 +291,6 @@ func isValidHash(h []byte, e uint32) bool {
 //Hash reteurns hash of tx.
 func (tr *Transaction) Hash() Hash {
 	hh := sha256.Sum256(arypack.Marshal(tr))
-	return hh[:]
-}
-
-//Hash reteurns hash of signature.
-func (sig *Signatures) Hash() Hash {
-	hh := sha256.Sum256(arypack.Marshal(sig))
 	return hh[:]
 }
 
@@ -376,7 +371,7 @@ func (bs *Address) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	var err error
-	*bs, err = address.FromAddress58(h)
+	*bs, _, err = address.ParseAddress58(h, nil)
 	return err
 }
 

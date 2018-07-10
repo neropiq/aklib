@@ -25,23 +25,22 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"log"
+	"strings"
 	"testing"
+
+	"github.com/AidosKuneen/aklib"
 )
 
 func TestHD(t *testing.T) {
 	masterkey := make([]byte, 32)
-	seed := make([]byte, 32)
 	if _, err := rand.Read(masterkey); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := rand.Read(seed); err != nil {
-		t.Fatal(err)
-	}
-	seed200 := HDseed(seed, masterkey, Height2, 0, 0)
-	seed253 := HDseed(seed, masterkey, Height2, 5, 3)
-	seed800 := HDseed(seed, masterkey, Height16, 0, 0)
-	seedA00 := HDseed(seed, masterkey, Height20, 0, 0)
-	seedA002 := HDseed(seed, masterkey, Height20, 0, 0)
+	seed200 := HDseed(masterkey, Height2, 0, 0)
+	seed253 := HDseed(masterkey, Height2, 5, 3)
+	seed800 := HDseed(masterkey, Height16, 0, 0)
+	seedA00 := HDseed(masterkey, Height20, 0, 0)
+	seedA002 := HDseed(masterkey, Height20, 0, 0)
 	log.Println(hex.EncodeToString(seed200))
 	log.Println(hex.EncodeToString(seed253))
 	log.Println(hex.EncodeToString(seed800))
@@ -68,4 +67,31 @@ func TestHD(t *testing.T) {
 		t.Error("should be equal")
 	}
 
+}
+
+func TestHDSeed(t *testing.T) {
+	seed := GenerateSeed()
+	seed200 := HDseed(seed, Height2, 0, 0)
+	pwd1 := []byte("qewrty123")
+	s58 := HDSeed58(aklib.TestConfig, seed200, pwd1)
+	t.Log(s58)
+	if !strings.HasPrefix(s58, "AKPRIVT1") {
+		t.Error("invaild prefix")
+	}
+	if _, err := HDFrom58(s58, []byte("wrong"), aklib.DebugConfig); err == nil {
+		t.Error("invalid from58")
+	}
+	rec, err := HDFrom58(s58, pwd1, aklib.DebugConfig)
+	if err != nil {
+		t.Error(err)
+	}
+	if !bytes.Equal(rec, seed200) {
+		t.Error("invalid from58")
+	}
+
+	s58 = HDSeed58(aklib.MainConfig, seed200, pwd1)
+	t.Log(s58)
+	if !strings.HasPrefix(s58, "AKPRIVM1") {
+		t.Error("invaild prefix")
+	}
 }

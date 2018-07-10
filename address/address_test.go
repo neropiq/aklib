@@ -32,22 +32,22 @@ import (
 )
 
 func TestAddress1(t *testing.T) {
-	testAddress(t, aklib.MainConfig, "AKPRIVM1", "AKADRSM1", Height2)
-	testAddress(t, aklib.TestConfig, "AKPRIVT1", "AKADRST1", Height2)
+	testAddress(t, aklib.MainConfig, "AKADRSM1", Height2)
+	testAddress(t, aklib.TestConfig, "AKADRST1", Height2)
 }
 
 func TestAddress5(t *testing.T) {
-	testAddress(t, aklib.MainConfig, "AKPRIVM5", "AKADRSM5", Height10)
-	testAddress(t, aklib.TestConfig, "AKPRIVT5", "AKADRST5", Height10)
+	testAddress(t, aklib.MainConfig, "AKADRSM5", Height10)
+	testAddress(t, aklib.TestConfig, "AKADRST5", Height10)
 }
 func TestAddressM8(t *testing.T) {
-	testAddress(t, aklib.MainConfig, "AKPRIVM8", "AKADRSM8", Height16)
+	testAddress(t, aklib.MainConfig, "AKADRSM8", Height16)
 }
 func TestAddressT8(t *testing.T) {
-	testAddress(t, aklib.TestConfig, "AKPRIVT8", "AKADRST8", Height16)
+	testAddress(t, aklib.TestConfig, "AKADRST8", Height16)
 }
 
-func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
+func testAddress(t *testing.T, net *aklib.Config, adr string, h byte) {
 	pwd1 := make([]byte, 15)
 	if _, err := rand.Read(pwd1); err != nil {
 		panic(err)
@@ -63,49 +63,13 @@ func testAddress(t *testing.T, net *aklib.Config, priv, adr string, h byte) {
 	if err != nil {
 		t.Error(err)
 	}
-	s58 := a.Seed58(pwd1)
-	t.Log(s58)
-	_, err = NewFrom58(s58, pwd2, net)
-	if err == nil {
-		t.Error("should be error")
-	}
-	if h == Height10 {
-		aa, errr := NewFrom58(s58, pwd1, net)
-		if errr != nil {
-			t.Error(errr)
-		}
-		if a.Height != 10 {
-			t.Error("invalid height")
-		}
-		if !bytes.Equal(seed, aa.Seed) {
-			t.Error("invalid seed58")
-		}
-	} else {
-		height, se, errr := from58(s58, pwd1, net)
-		if errr != nil {
-			t.Error(errr)
-		}
-		if height != h {
-			t.Error("invalid height")
-		}
-		if !bytes.Equal(seed, se) {
-			t.Error("invalid seed58")
-		}
-	}
-	if s58[:len(priv)] != priv {
-		t.Error("invalid seed58 prefix")
-	}
 
 	pk58 := a.Address58()
 	t.Log(pk58)
 	if pk58[:len(adr)] != adr {
 		t.Error("invalid address prefix")
 	}
-	pk, err := FromAddress58(pk58)
-	if err != nil {
-		t.Error(err)
-	}
-	h2, err := Pub58Height(pk58, net)
+	pk, h2, err := ParseAddress58(pk58, net)
 	if err != nil {
 		t.Error(err)
 	}
@@ -171,17 +135,4 @@ func TestAddress2(t *testing.T) {
 	if !Verify(sig, msg) {
 		t.Error("signature is invalid")
 	}
-}
-
-func TestAddress3(t *testing.T) {
-	seed := GenerateSeed()
-	a, err := New(Height10, seed, aklib.TestConfig)
-	if err != nil {
-		t.Error(err)
-	}
-	pwd1 := []byte("qewrty123")
-	s58 := a.Seed58(pwd1)
-	t.Log(s58)
-	t.Log(a.Address58())
-	// t.Fail()
 }

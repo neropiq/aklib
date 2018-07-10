@@ -38,10 +38,10 @@ type Config struct {
 	Name           string
 	Easiness       uint32
 	TicketEasiness uint32
-	PrefixPriv     [][]byte
+	PrefixPriv     []byte
 	PrefixAdrs     [][]byte
-	PrefixNkey     [][]byte
-	PrefixNode     [][]byte
+	// PrefixNkey     [][]byte
+	// PrefixNode     [][]byte
 
 	DefaultPort         uint16
 	DefaultRPCPort      uint16
@@ -58,28 +58,23 @@ var (
 		Name:           "mainnet",
 		Easiness:       0x3fffffff,
 		TicketEasiness: 0x03ffffff,
-		PrefixPriv: [][]byte{
-			[]byte{0x06, 0xa2, 0x5e}, //"VM1" in base5
-			[]byte{0x06, 0xa2, 0x71}, //"VM5" in base5
-			[]byte{0x06, 0xa2, 0x7f}, //"VM8" in base5
-			[]byte{0x06, 0xa2, 0x87}, //"VMA" in base5
-		},
+		PrefixPriv:     []byte{0x06, 0xa2, 0x5e}, //"VM1" in base5
 		PrefixAdrs: [][]byte{
 			[]byte{0x26, 0xd1, 0x41}, //"SM1" in base5
 			[]byte{0x26, 0xd1, 0xb8}, //"SM5" in base5
 			[]byte{0x26, 0xd2, 0x12}, //"SM8" in base5
 			[]byte{0x26, 0xd2, 0x4d}, //"SMA" in base5
 		},
-		PrefixNkey: [][]byte{
-			[]byte{0x30, 0x01, 0xbf}, //YM1
-			[]byte{0x30, 0x01, 0xdd}, //YM2
-			[]byte{0x30, 0x01, 0xfb}, //YM3
-		},
-		PrefixNode: [][]byte{
-			[]byte{0x14, 0x70, 0x45}, //EM1
-			[]byte{0x14, 0x70, 0x63}, //EM2
-			[]byte{0x14, 0x70, 0x81}, //EM3
-		},
+		// PrefixNkey: [][]byte{
+		// 	[]byte{0x30, 0x01, 0xbf}, //YM1
+		// 	[]byte{0x30, 0x01, 0xdd}, //YM2
+		// 	[]byte{0x30, 0x01, 0xfb}, //YM3
+		// },
+		// PrefixNode: [][]byte{
+		// 	[]byte{0x14, 0x70, 0x45}, //EM1
+		// 	[]byte{0x14, 0x70, 0x63}, //EM2
+		// 	[]byte{0x14, 0x70, 0x81}, //EM3
+		// },
 		DefaultPort:         14270,
 		DefaultRPCPort:      14271,
 		DefaultExplorerPort: 8080,
@@ -99,28 +94,23 @@ var (
 		Name:           "testnet",
 		Easiness:       0x7fffffff,
 		TicketEasiness: 0x3fffffff,
-		PrefixPriv: [][]byte{
-			[]byte{0x06, 0xa8, 0x91}, //"VT1" in base5
-			[]byte{0x06, 0xa8, 0xa3}, //"VT5" in base5
-			[]byte{0x06, 0xa8, 0xb0}, //"VT8" in base5
-			[]byte{0x06, 0xa8, 0xba}, //"VTA" in base5
-		},
+		PrefixPriv:     []byte{0x06, 0xa8, 0x91}, //"VT1" in base5
 		PrefixAdrs: [][]byte{
 			[]byte{0x26, 0xf9, 0xd0}, //"ST1" in base5
 			[]byte{0x26, 0xfa, 0x48}, //"ST5" in base5
 			[]byte{0x26, 0xfa, 0xa1}, //"ST8" in base5
 			[]byte{0x26, 0xfa, 0xdd}, //"STA" in base5
 		},
-		PrefixNkey: [][]byte{
-			[]byte{0x30, 0x2a, 0x4e}, //YT1
-			[]byte{0x30, 0x2a, 0x6c}, //YT2
-			[]byte{0x30, 0x2a, 0x8a}, //YT3
-		},
-		PrefixNode: [][]byte{
-			[]byte{0x14, 0x98, 0xd4}, //ET1
-			[]byte{0x14, 0x98, 0xf2}, //ET2
-			[]byte{0x14, 0x99, 0x10}, //ET3
-		},
+		// PrefixNkey: [][]byte{
+		// 	[]byte{0x30, 0x2a, 0x4e}, //YT1
+		// 	[]byte{0x30, 0x2a, 0x6c}, //YT2
+		// 	[]byte{0x30, 0x2a, 0x8a}, //YT3
+		// },
+		// PrefixNode: [][]byte{
+		// 	[]byte{0x14, 0x98, 0xd4}, //ET1
+		// 	[]byte{0x14, 0x98, 0xf2}, //ET2
+		// 	[]byte{0x14, 0x99, 0x10}, //ET3
+		// },
 		DefaultPort:         14370,
 		DefaultRPCPort:      14371,
 		DefaultExplorerPort: 8081,
@@ -140,28 +130,23 @@ var (
 		Name:           "debug",
 		Easiness:       0xffffffff,
 		TicketEasiness: 0x7fffffff,
-		PrefixPriv: [][]byte{
-			[]byte{0x06, 0xa8, 0x91}, //"VT1" in base5
-			[]byte{0x06, 0xa8, 0xa3}, //"VT5" in base5
-			[]byte{0x06, 0xa8, 0xb0}, //"VT8" in base5
-			[]byte{0x06, 0xa8, 0xba}, //"VTA" in base5
-		},
+		PrefixPriv:     []byte{0x06, 0xa8, 0x91}, //"VT1" in base5
 		PrefixAdrs: [][]byte{
 			[]byte{0x26, 0xf9, 0xd0}, //"ST1" in base5
 			[]byte{0x26, 0xfa, 0x48}, //"ST5" in base5
 			[]byte{0x26, 0xfa, 0xa1}, //"ST8" in base5
 			[]byte{0x26, 0xfa, 0xdd}, //"STA" in base5
 		},
-		PrefixNkey: [][]byte{
-			[]byte{0x30, 0x2a, 0x4e}, //YT1
-			[]byte{0x30, 0x2a, 0x6c}, //YT2
-			[]byte{0x30, 0x2a, 0x8a}, //YT3
-		},
-		PrefixNode: [][]byte{
-			[]byte{0x14, 0x98, 0xd4}, //ET1
-			[]byte{0x14, 0x98, 0xf2}, //ET2
-			[]byte{0x14, 0x99, 0x10}, //ET3
-		},
+		// PrefixNkey: [][]byte{
+		// 	[]byte{0x30, 0x2a, 0x4e}, //YT1
+		// 	[]byte{0x30, 0x2a, 0x6c}, //YT2
+		// 	[]byte{0x30, 0x2a, 0x8a}, //YT3
+		// },
+		// PrefixNode: [][]byte{
+		// 	[]byte{0x14, 0x98, 0xd4}, //ET1
+		// 	[]byte{0x14, 0x98, 0xf2}, //ET2
+		// 	[]byte{0x14, 0x99, 0x10}, //ET3
+		// },
 		DefaultPort:         14370,
 		DefaultRPCPort:      14371,
 		DefaultExplorerPort: 8081,

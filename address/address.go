@@ -44,7 +44,6 @@ const (
 
 var (
 	prefixAdrsString = "AKADR"
-	prefixPrivString = "AKPRI"
 )
 
 //Heights converts height byte to real height.
@@ -58,7 +57,6 @@ type Signature struct {
 
 //Address represents an address an assciated Merkle Tree in ADK.
 type Address struct {
-	prefixPriv []byte
 	prefixPub  []byte
 	privateKey *xmss.Merkle
 	Seed       []byte
@@ -87,69 +85,9 @@ func New(h byte, seed []byte, config *aklib.Config) (*Address, error) {
 	return &Address{
 		privateKey: xmss.NewMerkle(Heights[h], seed),
 		Seed:       seed,
-		prefixPriv: config.PrefixPriv[h],
 		prefixPub:  config.PrefixAdrs[h],
 		Height:     Heights[h],
 	}, nil
-}
-
-//Seed58 returns base58-encoded encrypted seed..
-func (a *Address) Seed58(pwd []byte) string {
-	out := make([]byte, len(a.Seed)+4)
-	copy(out, a.Seed)
-	hash := sha256.Sum256(a.Seed)
-	hash = sha256.Sum256(hash[:])
-
-	copy(out[len(a.Seed):], hash[0:4])
-	eseed := enc(out, pwd)
-
-	pref := a.prefixPriv
-	s := make([]byte, len(eseed)+len(pref))
-	copy(s, pref)
-	copy(s[len(pref):], eseed)
-	return prefixPrivString + Encode58(s)
-}
-
-func from58(seed58 string, pwd []byte, cfg *aklib.Config) (byte, []byte, error) {
-	if seed58[:len(prefixPrivString)] != prefixPrivString {
-		return 0, nil, errors.New("invalid prefix string in seed")
-	}
-	eseed, err := Decode58(seed58[len(prefixPrivString):])
-	if err != nil {
-		return 0, nil, err
-	}
-	var height byte
-	for ; height <= Height20; height++ {
-		pref := cfg.PrefixPriv[height]
-		if bytes.Equal(eseed[:len(pref)], pref) {
-			break
-		}
-	}
-	if height > Height20 {
-		return 0, nil, errors.New("invalid prefix bytes in seed")
-	}
-	eseed = eseed[len(cfg.PrefixPriv[height]):]
-	seed := enc(eseed, pwd)
-	encoded := seed[:len(seed)-4]
-	cksum := seed[len(seed)-4:]
-
-	//Perform SHA-256 twice
-	hash := sha256.Sum256(encoded)
-	hash = sha256.Sum256(hash[:])
-	if !bytes.Equal(hash[:4], cksum) {
-		return 0, nil, errors.New("invalid password")
-	}
-	return height, encoded, nil
-
-}
-
-//NewFrom58 returns Address struct with base58 encoded seed.
-func NewFrom58(seed58 string, pwd []byte, cfg *aklib.Config) (*Address, error) {
-	height, seed, err := from58(seed58, pwd, cfg)
-	if err != nil {
-		return nil, err
-	}
-	return New(height, seed, cfg)
 }
 
 //PublicKey returns public key.
@@ -177,31 +115,29 @@ func To58(p []byte) string {
 	return prefixAdrsString + Encode58(p)
 }
 
-//Pub58Height returns height of encoded public key.
-func Pub58Height(pub58 string, cfg *aklib.Config) (byte, error) {
-	pub, err := FromAddress58(pub58)
+//ParseAddress58 parses and checks base58 encoded address
+//and returns binary public key and its height.
+func ParseAddress58(pub58 string, cfg *aklib.Config) ([]byte, byte, error) {
+	if pub58[:len(prefixAdrsString)] != prefixAdrsString {
+		return nil, 0, errors.New("invalid prefix string in public key")
+	}
+	pub, err := Decode58(pub58[len(prefixAdrsString):])
 	if err != nil {
-		return 0, err
+		return nil, 0, err
+	}
+	if len(pub) != 32+3 {
+		return nil, 0, errors.New("invalid length")
+	}
+	if cfg == nil {
+		return pub, 255, nil
 	}
 	for height := byte(Height2); height <= Height20; height++ {
 		pref := cfg.PrefixAdrs[height]
 		if bytes.Equal(pub[:len(pref)], pref) {
-			return height, nil
+			return pub, height, nil
 		}
 	}
-	return 0, errors.New("invalid public key")
-}
-
-//FromAddress58 returns decode public key from base58 encoded string.
-func FromAddress58(pub58 string) ([]byte, error) {
-	if pub58[:len(prefixAdrsString)] != prefixAdrsString {
-		return nil, errors.New("invalid prefix string in public key")
-	}
-	pub, err := Decode58(pub58[len(prefixAdrsString):])
-	if err != nil {
-		return nil, err
-	}
-	return pub, nil
+	return nil, 0, errors.New("invalid public key")
 }
 
 //Address returns address bytes from sig.
@@ -234,7 +170,6 @@ func (sig *Signature) Index() (uint32, error) {
 type address struct {
 	Seed       []byte
 	PrivateKey *xmss.Merkle
-	PrefixPriv []byte
 	PrefixPub  []byte
 	Height     byte
 }
@@ -243,7 +178,6 @@ func (a *Address) exports() *address {
 	return &address{
 		Seed:       a.Seed,
 		PrivateKey: a.privateKey,
-		PrefixPriv: a.prefixPriv,
 		PrefixPub:  a.prefixPub,
 		Height:     a.Height,
 	}
@@ -252,7 +186,6 @@ func (a *Address) exports() *address {
 func (a *Address) imports(s *address) {
 	a.Seed = s.Seed
 	a.privateKey = s.PrivateKey
-	a.prefixPriv = s.PrefixPriv
 	a.prefixPub = s.PrefixPub
 	a.Height = s.Height
 }
