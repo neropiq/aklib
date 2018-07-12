@@ -21,29 +21,24 @@
 package tx
 
 import (
-	"errors"
+	"time"
 
 	"github.com/AidosKuneen/cuckoo"
 )
 
-const maxcnt = 5000
-
 //PoW does PoW.
 func (tx *Transaction) PoW() error {
 	cu := cuckoo.NewCuckoo()
-	for tx.Gnonce = 0; tx.Gnonce < maxcnt; tx.Gnonce++ {
+	for {
 		hs := tx.hashForPoW()
 		nonces, found := cu.PoW(hs)
 		if found {
 			tx.Nonce = nonces
-			txh := tx.Hash()
-			if isValidHash(txh, tx.Easiness) {
+			if isValidHash(tx.Hash(), tx.Easiness) {
 				break
 			}
 		}
-	}
-	if tx.Gnonce == maxcnt {
-		return errors.New("failed to PoW")
+		tx.Time = time.Now()
 	}
 	return nil
 }

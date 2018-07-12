@@ -56,6 +56,10 @@ func (h Hash) Array() [32]byte {
 	return h32
 }
 
+func (h Hash) String() string {
+	return hex.EncodeToString(h)
+}
+
 //GetTXFunc gets tx.
 type GetTXFunc func(hash []byte) (*Body, error)
 
@@ -108,14 +112,11 @@ type MultiSigIn struct {
 	Index      byte `json:"index"`
 }
 
-//max size=7021 bytes, normally 363 bytes
-
 //Body is a Transactoin except signature.
 type Body struct {
 	Type         ByteSlice      `json:"type"`                    //4 bytes
 	Nonce        []uint32       `json:"nonce"`                   //20*VarInt(<4)
-	Gnonce       uint32         `json:"g_nonce"`                 //4 bytes
-	Time         time.Time      `json:"time"`                    //4 bytes
+	Time         time.Time      `json:"time"`                    //8 bytes
 	Message      ByteSlice      `json:"message,omitempty"`       //<255 bytes
 	Inputs       []*Input       `json:"inputs,omitempty"`        //<33 * 32 = 1056 bytes
 	MultiSigIns  []*MultiSigIn  `json:"multisig_ins,omitempty"`  //<1032 * 4 = 4128 bytes
@@ -297,7 +298,6 @@ func (tr *Transaction) Hash() Hash {
 //bytesForSign returns a hash slice for  signinig
 func (tr *Transaction) bytesForSign() ([]byte, error) {
 	tx2 := tr.Clone()
-	tx2.Gnonce = 0
 	tx2.Nonce = nil
 	if tr.HashType&HashTypeExcludeTicketOut != 0 {
 		tx2.TicketOutput = nil
