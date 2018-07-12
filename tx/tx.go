@@ -116,6 +116,7 @@ type MultiSigIn struct {
 type Body struct {
 	Type         ByteSlice      `json:"type"`                    //4 bytes
 	Nonce        []uint32       `json:"nonce"`                   //20*VarInt(<4)
+	Gnonce       uint32         `json:"g_nonce"`                 //4 bytes
 	Time         time.Time      `json:"time"`                    //8 bytes
 	Message      ByteSlice      `json:"message,omitempty"`       //<255 bytes
 	Inputs       []*Input       `json:"inputs,omitempty"`        //<33 * 32 = 1056 bytes
@@ -298,6 +299,7 @@ func (tr *Transaction) Hash() Hash {
 //bytesForSign returns a hash slice for  signinig
 func (tr *Transaction) bytesForSign() ([]byte, error) {
 	tx2 := tr.Clone()
+	tx2.Gnonce = 0
 	tx2.Nonce = nil
 	if tr.HashType&HashTypeExcludeTicketOut != 0 {
 		tx2.TicketOutput = nil

@@ -21,7 +21,8 @@
 package tx
 
 import (
-	"time"
+	"errors"
+	"math"
 
 	"github.com/AidosKuneen/cuckoo"
 )
@@ -29,7 +30,7 @@ import (
 //PoW does PoW.
 func (tx *Transaction) PoW() error {
 	cu := cuckoo.NewCuckoo()
-	for {
+	for tx.Gnonce = 0; tx.Gnonce < math.MaxUint32; tx.Gnonce++ {
 		hs := tx.hashForPoW()
 		nonces, found := cu.PoW(hs)
 		if found {
@@ -38,7 +39,9 @@ func (tx *Transaction) PoW() error {
 				break
 			}
 		}
-		tx.Time = time.Now()
+	}
+	if tx.Gnonce == math.MaxUint32 {
+		return errors.New("failed to PoW")
 	}
 	return nil
 }
