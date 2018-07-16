@@ -1,5 +1,4 @@
  [![GoDoc](https://godoc.org/github.com/AidosKuneen/aklib/tx?status.svg)](https://godoc.org/github.com/AidosKuneen/aklib/tx)
-[![Coverage Status](https://coveralls.io/repos/github/AidosKuneen/aklib/badge.svg?branch=master)](https://coveralls.io/github/AidosKuneen/aklib?branch=master)
 
 # transaction
 

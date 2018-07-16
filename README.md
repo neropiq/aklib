@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.org/AidosKuneen/aklib.svg?branch=master)](https://travis-ci.org/AidosKuneen/aklib)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/AidosKuneen/aklib/LICENSE)
 [![GoDoc](https://godoc.org/github.com/AidosKuneen/aklib?status.svg)](https://godoc.org/github.com/AidosKuneen/aklib)
+[![Coverage Status](https://coveralls.io/repos/github/AidosKuneen/aklib/badge.svg?branch=master)](https://coveralls.io/github/AidosKuneen/aklib?branch=master)
 
 # aklib 
 
