@@ -10,16 +10,15 @@ env:
   - TEST_SUITE="-run ^TestAddressTA$"
 
 before_install:
-- go get -u github.com/axw/gocov/gocov
 - go get -u github.com/alecthomas/gometalinter
 - go get -u github.com/mattn/goveralls
-- go get -u golang.org/x/tools/cmd/cover
 - export PATH=$PATH:$GOPATH/bin
 - gometalinter --install --update
 - go generate -x ./...
 
 script:
-- travis_wait 30 go test ./... ${TEST_SUITE} -v  -timeout 100m
+- travis_wait 30 go test ./... ${TEST_SUITE} -v  -timeout 100m  -covermode=count -coverprofile=coverage.out
 
 after_success:
 - gometalinter -e bindata --deadline=1000s ./...
+- goveralls -coverprofile=coverage.out -service=travis-ci
