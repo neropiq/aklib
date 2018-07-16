@@ -69,13 +69,16 @@ func checkAdrsPrefix(cfg *aklib.Config, adr Address) bool {
 
 //Check checks the tx.
 func (tr *Transaction) Check(cfg *aklib.Config, typ Type) error {
-	if typ != TxNormal &&
-		typ != TxRewardFee && typ != TxRewardTicket {
-		return errors.New("invalid reward type")
-	}
 	powed := true
-	if typ == TxRewardFee || typ == TxRewardTicket {
+	if typ == TypeRewardFee || typ == TypeRewardTicket || typ == TypeNotPoWed {
 		powed = false
+	}
+	if typ == TypeNotPoWed {
+		typ = TypeNormal
+	}
+	if typ != TypeNormal &&
+		typ != TypeRewardFee && typ != TypeRewardTicket {
+		return errors.New("invalid reward type")
 	}
 	if tr.Size() > TransactionMax {
 		return errors.New("tx size is too big")
@@ -135,7 +138,7 @@ func (tr *Transaction) Check(cfg *aklib.Config, typ Type) error {
 		return errors.New("length of Outputs is over 255")
 	}
 	for n, o := range tr.Outputs {
-		if !(typ == TxRewardFee &&
+		if !(typ == TypeRewardFee &&
 			n == len(tr.Outputs)-1) && !checkAdrsPrefix(cfg, o.Address) {
 			return fmt.Errorf("incorrect address bytes in outputs %d", n)
 		}
@@ -144,7 +147,7 @@ func (tr *Transaction) Check(cfg *aklib.Config, typ Type) error {
 				n, aklib.ADKSupply)
 		}
 	}
-	if typ == TxRewardFee &&
+	if typ == TypeRewardFee &&
 		(len(tr.Outputs) == 0 || tr.Outputs[len(tr.Outputs)-1].Address != nil) {
 		return errors.New("last address of inputs must be nil")
 	}
@@ -202,14 +205,14 @@ func (tr *Transaction) Check(cfg *aklib.Config, typ Type) error {
 	}
 	n := int(tr.HashType) & 0xf
 	switch typ {
-	case TxRewardFee:
+	case TypeRewardFee:
 		if tr.HashType&0xfff0 != HashTypeExcludeOutputs {
 			return errors.New("hashtype of reward with fee must be 0x1X")
 		}
 		if n != 1 {
 			return errors.New("hashtype must be 0x11")
 		}
-	case TxRewardTicket:
+	case TypeRewardTicket:
 		if tr.HashType&0xfff0 != 0x20 {
 			return errors.New("hashtype of reward with Ticket must be 0x2X")
 		}
@@ -224,18 +227,18 @@ func (tr *Transaction) Check(cfg *aklib.Config, typ Type) error {
 		return errors.New("incorrect ticket output format")
 	}
 	switch typ {
-	case TxRewardTicket:
+	case TypeRewardTicket:
 		if tr.TicketOutput != nil {
 			return errors.New("ticket outtput must not be filled for RewardTicket")
 		}
 		if tr.TicketInput == nil {
 			return errors.New("ticket intput must  be filled for RewardTicket")
 		}
-	case TxRewardFee:
+	case TypeRewardFee:
 		if tr.TicketInput != nil || tr.TicketOutput != nil {
 			return errors.New("cannot use ticket")
 		}
-	case TxNormal:
+	case TypeNormal:
 		if tr.TicketInput != nil && tr.TicketOutput == nil {
 			return errors.New("ticket_output is nil but ticket_input is not nil")
 		}

@@ -75,14 +75,14 @@ func TestValidHashTX(t *testing.T) {
 func TestPoW(t *testing.T) {
 	tr := New(aklib.TestConfig, one, zero)
 
-	if err := tr.Check(aklib.TestConfig, TxNormal); err == nil {
+	if err := tr.Check(aklib.TestConfig, TypeNormal); err == nil {
 		t.Error("should be error")
 	}
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
 	t.Log(hex.EncodeToString(tr.Hash()))
-	if err := tr.Check(aklib.TestConfig, TxNormal); err != nil {
+	if err := tr.Check(aklib.TestConfig, TypeNormal); err != nil {
 		t.Error(err)
 	}
 
@@ -90,7 +90,7 @@ func TestPoW(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Check(aklib.TestConfig, TxNormal); err == nil {
+	if err := tr.Check(aklib.TestConfig, TypeNormal); err == nil {
 		t.Error("should be error")
 	}
 }
@@ -102,22 +102,22 @@ func TestTX(t *testing.T) {
 	}
 
 	tr.Nonce = make([]uint32, cuckoo.ProofSize)
-	if err := tr.Check(aklib.DebugConfig, TxNormal); err == nil {
+	if err := tr.Check(aklib.DebugConfig, TypeNormal); err == nil {
 		t.Error("must be error")
 	}
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Check(aklib.DebugConfig, TxNormal); err != nil {
+	if err := tr.Check(aklib.DebugConfig, TypeNormal); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Check(aklib.TestConfig, TxNormal); err == nil {
+	if err := tr.Check(aklib.TestConfig, TypeNormal); err == nil {
 		t.Error("must be error")
 	}
-	if err := tr.Check(aklib.DebugConfig, TxRewardFee); err == nil {
+	if err := tr.Check(aklib.DebugConfig, TypeRewardFee); err == nil {
 		t.Error("must be error")
 	}
-	if err := tr.Check(aklib.DebugConfig, TxRewardTicket); err == nil {
+	if err := tr.Check(aklib.DebugConfig, TypeRewardTicket); err == nil {
 		t.Error("must be error")
 	}
 
@@ -130,7 +130,7 @@ func TestTX(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Check(aklib.DebugConfig, TxNormal); err == nil {
+	if err := tr.Check(aklib.DebugConfig, TypeNormal); err == nil {
 		t.Error("must be error")
 	}
 
@@ -143,7 +143,7 @@ func TestTX(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Check(aklib.DebugConfig, TxNormal); err != nil {
+	if err := tr.Check(aklib.DebugConfig, TypeNormal); err != nil {
 		t.Error(err)
 	}
 
@@ -155,7 +155,7 @@ func TestTX(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Check(aklib.DebugConfig, TxNormal); err == nil {
+	if err := tr.Check(aklib.DebugConfig, TypeNormal); err == nil {
 		t.Error("must be error")
 	}
 
@@ -192,7 +192,7 @@ func TestTX(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Check(aklib.DebugConfig, TxNormal); err == nil {
+	if err := tr.Check(aklib.DebugConfig, TypeNormal); err == nil {
 		t.Error("should be error")
 	}
 
@@ -205,7 +205,7 @@ func TestTX(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Check(aklib.DebugConfig, TxRewardFee); err == nil {
+	if err := tr.Check(aklib.DebugConfig, TypeRewardFee); err == nil {
 		t.Error("should be error")
 	}
 
@@ -227,16 +227,16 @@ func TestTX(t *testing.T) {
 	if !bytes.Equal(hs1, hs2) {
 		t.Error("invalid hashtype")
 	}
-	if err := tr.Check(aklib.DebugConfig, TxRewardFee); err != nil {
+	if err := tr.Check(aklib.DebugConfig, TypeRewardFee); err != nil {
 		t.Error(err)
 	}
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Check(aklib.DebugConfig, TxRewardFee); err == nil {
+	if err := tr.Check(aklib.DebugConfig, TypeRewardFee); err == nil {
 		t.Error("should be error")
 	}
-	if err := tr.Check(aklib.DebugConfig, TxNormal); err == nil {
+	if err := tr.Check(aklib.DebugConfig, TypeNormal); err == nil {
 		t.Error("should be error")
 	}
 
@@ -250,7 +250,7 @@ func TestTX(t *testing.T) {
 	if err := tr.Sign(a[0]); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Check(aklib.DebugConfig, TxRewardFee); err != nil {
+	if err := tr.Check(aklib.DebugConfig, TypeRewardFee); err != nil {
 		t.Error(err)
 	}
 
@@ -258,7 +258,7 @@ func TestTX(t *testing.T) {
 	if err := tr.Sign(a[0]); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Check(aklib.DebugConfig, TxRewardFee); err == nil {
+	if err := tr.Check(aklib.DebugConfig, TypeRewardFee); err == nil {
 		t.Error("invalid isminable")
 	}
 
@@ -279,7 +279,7 @@ func TestTX(t *testing.T) {
 		t.Error("invalid hashtype")
 	}
 	tr = NewMinableTicket(aklib.DebugConfig, one, zero, one)
-	if err := tr.Check(aklib.DebugConfig, TxRewardTicket); err != nil {
+	if err := tr.Check(aklib.DebugConfig, TypeRewardTicket); err != nil {
 		t.Error(err)
 	}
 }
@@ -288,7 +288,7 @@ func TestTicket(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if err := ticket.Check(aklib.DebugConfig, TxNormal); err != nil {
+	if err := ticket.Check(aklib.DebugConfig, TypeNormal); err != nil {
 		t.Error(err)
 	}
 	if !isValidHash(ticket.Hash(), aklib.DebugConfig.TicketEasiness) {
@@ -298,7 +298,7 @@ func TestTicket(t *testing.T) {
 	if err := ticket.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := ticket.Check(aklib.DebugConfig, TxNormal); err == nil {
+	if err := ticket.Check(aklib.DebugConfig, TypeNormal); err == nil {
 		t.Error("should be error")
 	}
 }
@@ -368,7 +368,7 @@ func TestTX2(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TxNormal); err != nil {
+	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err != nil {
 		t.Fatal(err)
 	}
 	tr.Outputs[0].Value = 110
@@ -385,7 +385,7 @@ func TestTX2(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TxNormal); err == nil {
+	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err == nil {
 		t.Fatal("should be error")
 	}
 	tr.Outputs[0].Value = 111
@@ -394,7 +394,7 @@ func TestTX2(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TxNormal); err == nil {
+	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err == nil {
 		t.Error("should be error")
 	}
 	tr.Signatures = tr.Signatures[:0]
@@ -410,7 +410,7 @@ func TestTX2(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TxNormal); err != nil {
+	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err != nil {
 		t.Error(err)
 	}
 
@@ -418,14 +418,14 @@ func TestTX2(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TxNormal); err == nil {
+	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err == nil {
 		t.Error("must be error")
 	}
 
 	m[d1].MultiSigOuts[1].Addresses[1] = a[3].Address()
 	sig := tr.Signatures
 	tr.Signatures = tr.Signatures[:1]
-	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TxNormal); err == nil {
+	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err == nil {
 		t.Error("must be error")
 	}
 	tr.Signatures = sig
@@ -433,7 +433,7 @@ func TestTX2(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TxNormal); err == nil {
+	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err == nil {
 		t.Error("must be error")
 	}
 }
@@ -465,19 +465,19 @@ func TestTicket2(t *testing.T) {
 	if err := tx2.Sign(a1); err != nil {
 		t.Error(err)
 	}
-	if err := tx2.CheckAll(m.GetTX, aklib.DebugConfig, TxRewardTicket); err != nil {
+	if err := tx2.CheckAll(m.GetTX, aklib.DebugConfig, TypeRewardTicket); err != nil {
 		t.Error(err)
 	}
 	if err := tx2.Sign(a2); err != nil {
 		t.Error(err)
 	}
-	if err := tx2.CheckAll(m.GetTX, aklib.DebugConfig, TxRewardTicket); err == nil {
+	if err := tx2.CheckAll(m.GetTX, aklib.DebugConfig, TypeRewardTicket); err == nil {
 		t.Error("should be error")
 	}
 	tx2.Signatures = tx2.Signatures[:1]
 
 	m[d].TicketOutput = a2.Address()
-	if err := tx2.CheckAll(m.GetTX, aklib.DebugConfig, TxRewardTicket); err == nil {
+	if err := tx2.CheckAll(m.GetTX, aklib.DebugConfig, TypeRewardTicket); err == nil {
 		t.Error("must be error")
 	}
 
@@ -487,7 +487,7 @@ func TestTicket2(t *testing.T) {
 	if err := tx2.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tx2.CheckAll(m.GetTX, aklib.DebugConfig, TxNormal); err != nil {
+	if err := tx2.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err != nil {
 		t.Error(err)
 	}
 }
@@ -501,7 +501,7 @@ func TestTX3(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Check(aklib.DebugConfig, TxNormal); err != nil {
+	if err := tr.Check(aklib.DebugConfig, TypeNormal); err != nil {
 		t.Error(err)
 	}
 
@@ -513,7 +513,7 @@ func TestTX3(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Check(aklib.DebugConfig, TxNormal); err == nil {
+	if err := tr.Check(aklib.DebugConfig, TypeNormal); err == nil {
 		t.Error("should be error")
 	}
 
@@ -532,7 +532,7 @@ func TestTX3(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Check(aklib.DebugConfig, TxNormal); err == nil {
+	if err := tr.Check(aklib.DebugConfig, TypeNormal); err == nil {
 		t.Error("should be error")
 	}
 
@@ -604,7 +604,7 @@ func benchPoW(b *testing.B, r bool) {
 	if err := tr.PoW(); err != nil {
 		b.Error(err)
 	}
-	if err := tr.Check(aklib.MainConfig, TxNormal); err != nil {
+	if err := tr.Check(aklib.MainConfig, TypeNormal); err != nil {
 		b.Error(err)
 	}
 	b.Log(hex.EncodeToString(tr.Hash()))

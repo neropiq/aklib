@@ -82,9 +82,10 @@ type ByteSlice []byte
 
 //type for minable tx.
 const (
-	TxNormal Type = iota
-	TxRewardTicket
-	TxRewardFee
+	TypeNormal Type = iota
+	TypeRewardTicket
+	TypeRewardFee
+	TypeNotPoWed
 )
 
 //Input is an input in transactions.
@@ -381,4 +382,8 @@ func (bs *Address) UnmarshalJSON(b []byte) error {
 func (bs *Address) MarshalJSON() ([]byte, error) {
 	adr := address.To58(*bs)
 	return json.Marshal(&adr)
+}
+
+func (bs Address) String() string {
+	return address.To58(bs)
 }

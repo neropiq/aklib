@@ -21,6 +21,7 @@
 package tx
 
 import (
+	"context"
 	"errors"
 	"math"
 
@@ -29,6 +30,11 @@ import (
 
 //PoW does PoW.
 func (tx *Transaction) PoW() error {
+	return tx.PoWContext(nil)
+}
+
+//PoWContext does PoW with context..
+func (tx *Transaction) PoWContext(ctx context.Context) error {
 	cu := cuckoo.NewCuckoo()
 	for tx.Gnonce = 0; tx.Gnonce < math.MaxUint32; tx.Gnonce++ {
 		hs := tx.hashForPoW()
@@ -37,6 +43,13 @@ func (tx *Transaction) PoW() error {
 			tx.Nonce = nonces
 			if isValidHash(tx.Hash(), tx.Easiness) {
 				break
+			}
+		}
+		if ctx != nil {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
 			}
 		}
 	}
