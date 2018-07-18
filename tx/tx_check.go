@@ -177,18 +177,18 @@ func (tr *Transaction) Check(cfg *aklib.Config, typ Type) error {
 				n, aklib.ADKSupply)
 		}
 	}
-	if len(tr.Previous) == 0 {
+	if len(tr.Parent) == 0 {
 		return fmt.Errorf("number of previous tx must be over 0")
 	}
-	if len(tr.Previous) > ArrayMax {
+	if len(tr.Parent) > ArrayMax {
 		return errors.New("length of Previous is over 255")
 	}
-	for n, i := range tr.Previous {
+	for n, i := range tr.Parent {
 		if len(i) != 32 {
 			return fmt.Errorf("tx hash size at previous tx %d must be 32 bytes", n)
 		}
-		for j := n + 1; j < len(tr.Previous); j++ {
-			if bytes.Equal(i, tr.Previous[j]) {
+		for j := n + 1; j < len(tr.Parent); j++ {
+			if bytes.Equal(i, tr.Parent[j]) {
 				return fmt.Errorf("previous tx %d is same as %d", n, j)
 			}
 		}
@@ -355,7 +355,7 @@ func (tr *Transaction) CheckAll(getTX GetTXFunc, cfg *aklib.Config, typ Type) er
 	if err := tr.Check(cfg, typ); err != nil {
 		return err
 	}
-	for _, i := range tr.Previous {
+	for _, i := range tr.Parent {
 		if _, err := getTX(i); err != nil {
 			return err
 		}

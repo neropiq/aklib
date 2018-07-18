@@ -390,7 +390,7 @@ func TestTX2(t *testing.T) {
 	}
 	tr.Outputs[0].Value = 111
 
-	tr.Previous = tr.Previous[:1]
+	tr.Parent = tr.Parent[:1]
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}

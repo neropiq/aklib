@@ -35,6 +35,7 @@ type Header byte
 const (
 	HeaderTxInfo Header = iota + 1
 	HeaderTxSig
+	HeaderTxNo
 	HeaderNodeIP
 	HeaderTxRewardFee
 	HeaderTxRewardTicket

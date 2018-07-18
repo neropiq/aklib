@@ -124,7 +124,7 @@ type Body struct {
 	MultiSigIns  []*MultiSigIn  `json:"multisig_ins,omitempty"`  //<1032 * 4 = 4128 bytes
 	Outputs      []*Output      `json:"outputs,omitempty"`       //<40 * 32 = 1280 bytes
 	MultiSigOuts []*MultiSigOut `json:"multisig_outs,omitempty"` //<1032 * 4 = 4128 bytes
-	Previous     []Hash         `json:"previous"`                //<8*32=256 bytes
+	Parent       []Hash         `json:"parent"`                  //<8*32=256 bytes
 	Easiness     uint32         `json:"easiness"`                //1 byte //not used for now
 	LockTime     time.Time      `json:"lock_time"`               // 4 bytes
 	HashType     uint16         `json:"hash_type"`
@@ -150,7 +150,7 @@ func New(s *aklib.Config, previous ...Hash) *Transaction {
 			Type:     typeNormal,
 			Time:     time.Now(),
 			Easiness: s.Easiness,
-			Previous: previous,
+			Parent:   previous,
 		},
 	}
 }
@@ -163,7 +163,7 @@ func IssueTicket(s *aklib.Config, ticketOut *address.Address, previous ...Hash) 
 			Time:         time.Now(),
 			Easiness:     s.TicketEasiness,
 			TicketOutput: ticketOut.Address(),
-			Previous:     previous,
+			Parent:       previous,
 		},
 	}
 	return tr, tr.PoW()
@@ -177,7 +177,7 @@ func NewMinableFee(s *aklib.Config, previous ...Hash) *Transaction {
 			Time:     time.Now(),
 			Easiness: s.Easiness,
 			HashType: HashTypeExcludeOutputs | 0x1,
-			Previous: previous,
+			Parent:   previous,
 		},
 	}
 }
@@ -190,7 +190,7 @@ func NewMinableTicket(s *aklib.Config, ticketIn Hash, previous ...Hash) *Transac
 			Time:        time.Now(),
 			Easiness:    s.Easiness,
 			HashType:    HashTypeExcludeTicketOut,
-			Previous:    previous,
+			Parent:      previous,
 			TicketInput: ticketIn,
 		},
 	}
