@@ -148,7 +148,7 @@ func New(s *aklib.Config, previous ...Hash) *Transaction {
 	return &Transaction{
 		Body: &Body{
 			Type:     typeNormal,
-			Time:     time.Now().Round(time.Second),
+			Time:     time.Now().Truncate(time.Second),
 			Easiness: s.Easiness,
 			Parent:   previous,
 		},
@@ -160,7 +160,7 @@ func IssueTicket(s *aklib.Config, ticketOut *address.Address, previous ...Hash) 
 	tr := &Transaction{
 		Body: &Body{
 			Type:         typeNormal,
-			Time:         time.Now().Round(time.Second),
+			Time:         time.Now().Truncate(time.Second),
 			Easiness:     s.TicketEasiness,
 			TicketOutput: ticketOut.Address(),
 			Parent:       previous,
@@ -174,7 +174,7 @@ func NewMinableFee(s *aklib.Config, previous ...Hash) *Transaction {
 	return &Transaction{
 		Body: &Body{
 			Type:     typeNormal,
-			Time:     time.Now().Round(time.Second),
+			Time:     time.Now().Truncate(time.Second),
 			Easiness: s.Easiness,
 			HashType: HashTypeExcludeOutputs | 0x1,
 			Parent:   previous,
@@ -187,7 +187,7 @@ func NewMinableTicket(s *aklib.Config, ticketIn Hash, previous ...Hash) *Transac
 	return &Transaction{
 		Body: &Body{
 			Type:        typeNormal,
-			Time:        time.Now().Round(time.Second),
+			Time:        time.Now().Truncate(time.Second),
 			Easiness:    s.Easiness,
 			HashType:    HashTypeExcludeTicketOut,
 			Parent:      previous,
