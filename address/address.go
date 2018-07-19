@@ -118,6 +118,9 @@ func To58(p []byte) string {
 //ParseAddress58 parses and checks base58 encoded address
 //and returns binary public key and its height.
 func ParseAddress58(pub58 string, cfg *aklib.Config) ([]byte, byte, error) {
+	if len(pub58) <= len(prefixAdrsString) {
+		return nil, 0, errors.New("invalid length")
+	}
 	if pub58[:len(prefixAdrsString)] != prefixAdrsString {
 		return nil, 0, errors.New("invalid prefix string in public key")
 	}
