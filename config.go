@@ -24,7 +24,7 @@ const (
 	//ADK is for converting 1 ADK to unit in transactions.
 	ADK = 100000000
 	//ADKSupply is total supply of ADK.
-	ADKSupply = 25 * 1000000 * ADK
+	ADKSupply uint64 = 25 * 1000000 * ADK
 )
 
 //SRV is a param for SRVLookup
