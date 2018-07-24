@@ -136,29 +136,12 @@ type Body struct {
 	Reserved     []byte         `json:"-"` //not used
 }
 
-//Vbody is a Validator Transaction except signature.
-//Message is used for broadcasting validator PKs and updating the PK of a validator
-type Vbody struct {
-	Type       ByteSlice `json:"type"`              //4 bytes
-	Time       time.Time `json:"time"`              //8 bytes
-	Message    ByteSlice `json:"message,omitempty"` //<255 bytes
-	Parent     []Hash    `json:"parent"`            //<8*32=256 bytes
-	Validators Hash      `json:"validators"`        //32 byte
-	Vote       []byte    `json:"-"`                 //not used
-}
-
 //Signatures is a slice of Signature
 type Signatures []*address.Signature
 
 //Transaction is a transaction in Aidos Kuneen.
 type Transaction struct {
 	*Body      `json:"body"`
-	Signatures `json:"signatures"`
-}
-
-//Vtransaction is a validator transaction in Aidos Kuneen.
-type Vtransaction struct {
-	*Vbody     `json:"vbody"`
 	Signatures `json:"signatures"`
 }
 
@@ -170,18 +153,6 @@ func New(s *aklib.Config, previous ...Hash) *Transaction {
 			Time:     time.Now().Truncate(time.Second),
 			Easiness: s.Easiness,
 			Parent:   previous,
-		},
-	}
-}
-
-//NewV returns a validator transaction object.
-func NewV(s *aklib.Config, validators Hash, previous ...Hash) *Vtransaction {
-	return &Vtransaction{
-		Vbody: &Vbody{
-			Type:       typeValidator,
-			Time:       time.Now().Truncate(time.Second),
-			Parent:     previous,
-			Validators: validators,
 		},
 	}
 }
