@@ -27,15 +27,16 @@ are required to compile this.
      $ go get github.com/AidosKuneen/aklib
 
 
-# Contribution
+## Contribution
 Improvements to the codebase and pull requests are encouraged.
 
 
-# Dependencies and Licenses
+## Dependencies and Licenses
 
 This software includes the work that is distributed in the Apache License 2.0.
 
-github.com/AidosKuneen/aklib          Apache License 2.0
+```
+github.com/AidosKuneen/aklib          MIT License
 github.com/AidosKuneen/aknode         MIT License
 github.com/AidosKuneen/cuckoo         MIT License
 github.com/AidosKuneen/numcpu         MIT License
@@ -51,3 +52,4 @@ github.com/vmihailenco/msgpack/codes  BSD 2-clause "Simplified" License
 golang.org/x/net                      BSD 3-clause "New" or "Revised" License
 golang.org/x/sys/unix                 BSD 3-clause "New" or "Revised" License
 Golang Standard Library               BSD 3-clause License
+```
