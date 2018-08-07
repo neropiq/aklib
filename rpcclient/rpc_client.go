@@ -29,9 +29,7 @@ import (
 	"net/http"
 
 	"github.com/AidosKuneen/aklib/arypack"
-
 	"github.com/AidosKuneen/aklib/tx"
-
 	"github.com/AidosKuneen/aknode/msg"
 	"github.com/AidosKuneen/aknode/rpc"
 )

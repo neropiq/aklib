@@ -352,7 +352,7 @@ func TestRPCClient(t *testing.T) {
 	if len(hs) != 1 {
 		t.Error("invalid history", len(hs))
 	}
-	if hs[0].Type != imesh.TypeIn {
+	if hs[0].Type != tx.TypeIn {
 		t.Error("invalid history")
 	}
 	if hs[0].Index != 0 {
