@@ -284,7 +284,7 @@ func TestTX(t *testing.T) {
 	}
 }
 func TestTicket(t *testing.T) {
-	ticket, err := IssueTicket(aklib.DebugConfig, a[0], zero)
+	ticket, err := IssueTicket(aklib.DebugConfig, a[0].Address(), zero)
 	if err != nil {
 		t.Error(err)
 	}
@@ -522,7 +522,7 @@ func TestTX3(t *testing.T) {
 		t.Error("should be error")
 	}
 	tr.MultiSigOuts = append(tr.MultiSigOuts, &MultiSigOut{
-		N:         2,
+		M:         2,
 		Addresses: []Address{zero},
 		Value:     1,
 	})

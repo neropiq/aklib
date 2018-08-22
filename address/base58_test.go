@@ -55,8 +55,9 @@ func BenchmarkBase58ASeed(b *testing.B) {
 		to[i] = 0xff
 	}
 	es := []string{
-		"VT1", "VT5", "VT8", "VTA",
-		"VM1", "VM5", "VM8", "VMA",
+		"VT1",
+		"VM1",
+		"VD1",
 	}
 loop:
 	for i := 0; i <= 0xff; i++ {
@@ -88,19 +89,28 @@ loop:
 	}
 }
 
-func BenchmarkBase58AAddr(b *testing.B) {
-	from := make([]byte, 33+3)
-	to := make([]byte, 33+3)
+func BenchmarkBase58(b *testing.B) {
+	from := make([]byte, 32+3)
+	to := make([]byte, 32+3)
 	for i := range to {
 		to[i] = 0xff
 	}
 	es := []string{
 		"ST1", "ST5", "ST8", "STA",
-		"YT1", "YT2", "YT3",
-		"ET1", "ET2", "ET3",
+		// "YT1", "YT2", "YT3",
+		// "ET1", "ET2", "ET3",
+
 		"SM1", "SM5", "SM8", "SMA",
-		"YM1", "YM2", "YM3",
-		"EM1", "EM2", "EM3",
+		// "YM1", "YM2", "YM3",
+		// "EM1", "EM2", "EM3",
+
+		"SD1", "SD5", "SD8", "SDA",
+		// "YD1", "YD2", "YD3",
+		// "ED1", "ED2", "ED3",
+
+		"GT1",
+		"GM1",
+		"GD1",
 	}
 
 loop:

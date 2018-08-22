@@ -127,3 +127,9 @@ func InputHashes(tr *Body) []*InoutHash {
 	}
 	return prevs
 }
+
+//HashWithType is hash with tx type.
+type HashWithType struct {
+	Hash Hash
+	Type Type
+}

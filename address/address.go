@@ -27,6 +27,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"sort"
 
 	"github.com/AidosKuneen/aklib"
 	sha256 "github.com/AidosKuneen/sha256-simd"
@@ -44,6 +45,7 @@ const (
 
 var (
 	prefixAdrsString = "AKADR"
+	prefixMsigString = "AKMSI"
 )
 
 //Heights converts height byte to real height.
@@ -255,4 +257,18 @@ func GenerateSeed() []byte {
 		panic(err)
 	}
 	return seed
+}
+
+//MultisigAddress returns an multisig address.
+func MultisigAddress(cfg *aklib.Config, m byte, address ...[]byte) string {
+	s := sha256.New()
+	s.Write([]byte{m})
+	sort.Slice(address, func(i, j int) bool {
+		return bytes.Compare(address[i], address[j]) < 0
+	})
+	for _, a := range address {
+		s.Write(a)
+	}
+	h := append(cfg.PrefixMsig, s.Sum(nil)...)
+	return prefixMsigString + Encode58(h)
 }

@@ -25,26 +25,72 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/AidosKuneen/aklib"
 	"github.com/vmihailenco/msgpack"
 )
 
+func TestMultisigAddress1(t *testing.T) {
+	testMultisigAddress(t, aklib.MainConfig, "AKMSIGM1")
+	testMultisigAddress(t, aklib.TestConfig, "AKMSIGT1")
+	testMultisigAddress(t, aklib.DebugConfig, "AKMSIGD1")
+}
+
 func TestAddress1(t *testing.T) {
 	testAddress(t, aklib.MainConfig, "AKADRSM1", Height2)
 	testAddress(t, aklib.TestConfig, "AKADRST1", Height2)
+	testAddress(t, aklib.DebugConfig, "AKADRSD1", Height2)
 }
 
 func TestAddress5(t *testing.T) {
 	testAddress(t, aklib.MainConfig, "AKADRSM5", Height10)
 	testAddress(t, aklib.TestConfig, "AKADRST5", Height10)
+	testAddress(t, aklib.DebugConfig, "AKADRSD5", Height10)
 }
 func TestAddressM8(t *testing.T) {
 	testAddress(t, aklib.MainConfig, "AKADRSM8", Height16)
 }
 func TestAddressT8(t *testing.T) {
 	testAddress(t, aklib.TestConfig, "AKADRST8", Height16)
+}
+func TestAddressD8(t *testing.T) {
+	testAddress(t, aklib.DebugConfig, "AKADRSD8", Height16)
+}
+
+func testMultisigAddress(t *testing.T, net *aklib.Config, adr string) {
+	pwd1 := make([]byte, 15)
+	if _, err := rand.Read(pwd1); err != nil {
+		panic(err)
+	}
+	pwd2 := make([]byte, 15)
+	if _, err := rand.Read(pwd2); err != nil {
+		panic(err)
+	}
+	var a1, a2, a3 *Address
+
+	seed := GenerateSeed()
+	var err error
+	a1, err = New(Height10, seed, net)
+	if err != nil {
+		t.Error(err)
+	}
+	seed = GenerateSeed()
+	a2, err = New(Height10, seed, net)
+	if err != nil {
+		t.Error(err)
+	}
+	seed = GenerateSeed()
+	a3, err = New(Height10, seed, net)
+	if err != nil {
+		t.Error(err)
+	}
+	msig := MultisigAddress(net, 2, a1.Address(), a2.Address(), a3.Address())
+	if !strings.HasPrefix(msig, adr) {
+		t.Error("invalid msig adr", msig)
+	}
+
 }
 
 func testAddress(t *testing.T, net *aklib.Config, adr string, h byte) {

@@ -13,7 +13,6 @@ This  library is for managing AidosKuneen features including
 * [Transaction, Proof of Work](https://github.com/AidosKuneen/aklib/tree/master/tx)
  (Proof of Work with [Cuckoo Cycle](https://github.com/AidosKuneen/cuckoo))
 * [RPC client](https://github.com/AidosKuneen/aklib/tree/master/rpcclient)
-* [Transfer (not yet)](https://github.com/AidosKuneen/aklib/tree/master/transfer)
 
 ## Requirements
 

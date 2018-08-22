@@ -40,6 +40,7 @@ type Config struct {
 	TicketEasiness uint32
 	PrefixPriv     []byte
 	PrefixAdrs     [][]byte
+	PrefixMsig     []byte
 	// PrefixNkey     [][]byte
 	// PrefixNode     [][]byte
 
@@ -65,6 +66,7 @@ var (
 			[]byte{0x26, 0xd2, 0x12}, //"SM8" in base5
 			[]byte{0x26, 0xd2, 0x4d}, //"SMA" in base5
 		},
+		PrefixMsig: []byte{0x17, 0x80, 0x6f}, //GM1
 		// PrefixNkey: [][]byte{
 		// 	[]byte{0x30, 0x01, 0xbf}, //YM1
 		// 	[]byte{0x30, 0x01, 0xdd}, //YM2
@@ -101,6 +103,8 @@ var (
 			[]byte{0x26, 0xfa, 0xa1}, //"ST8" in base5
 			[]byte{0x26, 0xfa, 0xdd}, //"STA" in base5
 		},
+		PrefixMsig: []byte{0x17, 0xa8, 0xfe}, //GT1
+
 		// PrefixNkey: [][]byte{
 		// 	[]byte{0x30, 0x2a, 0x4e}, //YT1
 		// 	[]byte{0x30, 0x2a, 0x6c}, //YT2
@@ -130,13 +134,15 @@ var (
 		Name:           "debug",
 		Easiness:       0xffffffff,
 		TicketEasiness: 0x7fffffff,
-		PrefixPriv:     []byte{0x06, 0xa8, 0x91}, //"VT1" in base5
+		PrefixPriv:     []byte{0x06, 0x9a, 0x1a}, //VD1
 		PrefixAdrs: [][]byte{
-			[]byte{0x26, 0xf9, 0xd0}, //"ST1" in base5
-			[]byte{0x26, 0xfa, 0x48}, //"ST5" in base5
-			[]byte{0x26, 0xfa, 0xa1}, //"ST8" in base5
-			[]byte{0x26, 0xfa, 0xdd}, //"STA" in base5
+			[]byte{0x26, 0x9b, 0x2c}, //SD1
+			[]byte{0x26, 0x9b, 0xa4}, //SD5
+			[]byte{0x26, 0x9b, 0xfd}, //SD8
+			[]byte{0x26, 0x9c, 0x39}, //SDA
 		},
+		PrefixMsig: []byte{0x17, 0x4a, 0x5a}, //GD1
+
 		// PrefixNkey: [][]byte{
 		// 	[]byte{0x30, 0x2a, 0x4e}, //YT1
 		// 	[]byte{0x30, 0x2a, 0x6c}, //YT2

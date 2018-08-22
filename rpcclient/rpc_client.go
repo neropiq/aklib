@@ -51,9 +51,9 @@ func (client *RPC) request(method string, params interface{}, out interface{}) e
 //RPC is for calling RPCs.
 type RPC struct {
 	client   *http.Client
-	endpoint string
-	user     string
-	password string
+	Endpoint string
+	User     string
+	Password string
 }
 
 //New takes an (optional) endpoint and optional http.Client and returns
@@ -64,9 +64,9 @@ func New(endpoint, user, password string, c *http.Client) *RPC {
 	}
 	return &RPC{
 		client:   c,
-		endpoint: endpoint,
-		user:     user,
-		password: password,
+		Endpoint: endpoint,
+		User:     user,
+		Password: password,
 	}
 }
 
@@ -76,12 +76,14 @@ func (client *RPC) do(cmd interface{}, out interface{}) error {
 		return err
 	}
 	rd := bytes.NewReader(b)
-	req, err := http.NewRequest("POST", client.endpoint, rd)
+	req, err := http.NewRequest("POST", client.Endpoint, rd)
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth(client.user, client.password)
-	req.Header.Set("Content-Type", "text/plain")
+	if client.User != "" || client.Password != "" {
+		req.SetBasicAuth(client.User, client.Password)
+		req.Header.Set("Content-Type", "text/plain")
+	}
 	resp, err := client.client.Do(req)
 	if err != nil {
 		return err
@@ -262,12 +264,12 @@ func (client *RPC) GetLeaves() ([]string, error) {
 	return out.Result, err
 }
 
-//GetLastHistory sends a getlasthistory RPC.
-func (client *RPC) GetLastHistory(adr string) ([]*rpc.InoutHash, error) {
+//GetHistory sends a getlasthistory RPC.
+func (client *RPC) GetHistory(adr string, all bool) ([]*rpc.InoutHash, error) {
 	var out struct {
 		Result []*rpc.InoutHash `json:"result"`
 	}
-	err := client.request("getlasthistory", []interface{}{adr}, &out)
+	err := client.request("gethistory", []interface{}{adr, all}, &out)
 	return out.Result, err
 }
 

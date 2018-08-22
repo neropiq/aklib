@@ -78,10 +78,10 @@ func TestHDSeed(t *testing.T) {
 	if !strings.HasPrefix(s58, "AKPRIVT1") {
 		t.Error("invaild prefix")
 	}
-	if _, err := HDFrom58(s58, []byte("wrong"), aklib.DebugConfig); err == nil {
+	if _, err := HDFrom58(s58, []byte("wrong"), aklib.TestConfig); err == nil {
 		t.Error("invalid from58")
 	}
-	rec, err := HDFrom58(s58, pwd1, aklib.DebugConfig)
+	rec, err := HDFrom58(s58, pwd1, aklib.TestConfig)
 	if err != nil {
 		t.Error(err)
 	}
@@ -92,6 +92,12 @@ func TestHDSeed(t *testing.T) {
 	s58 = HDSeed58(aklib.MainConfig, seed200, pwd1)
 	t.Log(s58)
 	if !strings.HasPrefix(s58, "AKPRIVM1") {
+		t.Error("invaild prefix")
+	}
+
+	s58 = HDSeed58(aklib.DebugConfig, seed200, pwd1)
+	t.Log(s58)
+	if !strings.HasPrefix(s58, "AKPRIVD1") {
 		t.Error("invaild prefix")
 	}
 }

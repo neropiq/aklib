@@ -102,7 +102,7 @@ type Output struct {
 
 //MultiSigOut is an multisig output in transactions.
 type MultiSigOut struct {
-	N         byte      `json:"n"`         //0 means normal payment, or N out of len(Address) multisig.
+	M         byte      `json:"n"`         //0 means normal payment, or M out of len(Address) multisig.
 	Addresses []Address `json:"addresses"` //< 65 * 32 bytes
 	Value     uint64    `json:"value"`     //8 bytes
 }
@@ -156,13 +156,13 @@ func New(s *aklib.Config, previous ...Hash) *Transaction {
 }
 
 //IssueTicket make and does PoW for a  transaction for issuing tx.
-func IssueTicket(s *aklib.Config, ticketOut *address.Address, previous ...Hash) (*Transaction, error) {
+func IssueTicket(s *aklib.Config, ticketOut []byte, previous ...Hash) (*Transaction, error) {
 	tr := &Transaction{
 		Body: &Body{
 			Type:         typeNormal,
 			Time:         time.Now().Truncate(time.Second),
 			Easiness:     s.TicketEasiness,
-			TicketOutput: ticketOut.Address(),
+			TicketOutput: ticketOut,
 			Parent:       previous,
 		},
 	}
@@ -233,8 +233,8 @@ func (body *Body) AddMultisigIn(h Hash, idx byte) {
 }
 
 //AddMultisigOut add a mulsig output into tx.
-func (body *Body) AddMultisigOut(cfg *aklib.Config, n byte, v uint64, adrs ...string) error {
-	if len(adrs) < int(n) {
+func (body *Body) AddMultisigOut(cfg *aklib.Config, m byte, v uint64, adrs ...string) error {
+	if len(adrs) < int(m) {
 		return errors.New("length of adrs is less than n")
 	}
 	as := make([]Address, len(adrs))
@@ -249,7 +249,7 @@ func (body *Body) AddMultisigOut(cfg *aklib.Config, n byte, v uint64, adrs ...st
 		as[i] = pub
 	}
 	body.MultiSigOuts = append(body.MultiSigOuts, &MultiSigOut{
-		N:         n,
+		M:         m,
 		Addresses: as,
 		Value:     v,
 	})

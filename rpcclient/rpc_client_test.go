@@ -51,7 +51,7 @@ var genesis tx.Hash
 var l net.Listener
 var tdir string
 var walletpwd = "hoe"
-var cnotify chan []*imesh.HashWithType
+var cnotify chan []*tx.HashWithType
 
 func setup(t *testing.T) {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
@@ -113,7 +113,7 @@ func setup(t *testing.T) {
 	}
 
 	rpc.Run(&s)
-	rpc.GoNotify(&s, func(ch chan []*imesh.HashWithType) {
+	rpc.GoNotify(&s, func(ch chan []*tx.HashWithType) {
 		cnotify = ch
 	})
 }
@@ -163,9 +163,9 @@ func confirmAll(t *testing.T, confirm bool) {
 	if err != nil {
 		t.Error(err)
 	}
-	ts := make([]*imesh.HashWithType, len(txs))
+	ts := make([]*tx.HashWithType, len(txs))
 	for i := range txs {
-		ts[i] = &imesh.HashWithType{
+		ts[i] = &tx.HashWithType{
 			Hash: txs[i],
 			Type: tx.TypeNormal,
 		}
@@ -345,7 +345,7 @@ func TestRPCClient(t *testing.T) {
 	if ls[0] != id {
 		t.Error("invalid leave")
 	}
-	hs, err := cl.GetLastHistory(adr)
+	hs, err := cl.GetHistory(adr, false)
 	if err != nil {
 		t.Error(err)
 	}

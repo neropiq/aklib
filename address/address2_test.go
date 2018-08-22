@@ -33,3 +33,7 @@ func TestAddressMA(t *testing.T) {
 func TestAddressTA(t *testing.T) {
 	testAddress(t, aklib.TestConfig, "AKADRSTA", Height20)
 }
+
+func TestAddressDA(t *testing.T) {
+	testAddress(t, aklib.DebugConfig, "AKADRSDA", Height20)
+}

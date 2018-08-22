@@ -168,8 +168,8 @@ func (tr *Transaction) Check(cfg *aklib.Config, typ Type) error {
 				}
 			}
 		}
-		if o.N > byte(len(o.Addresses)) {
-			return fmt.Errorf("N at multisig %d must be under number of address %d",
+		if o.M > byte(len(o.Addresses)) {
+			return fmt.Errorf("M at multisig %d must be under number of address %d",
 				n, len(o.Addresses))
 		}
 		if o.Value > aklib.ADKSupply {
@@ -330,8 +330,8 @@ func (tr *Transaction) total(getTX GetTXFunc, cfg *aklib.Config) (uint64, uint64
 				exist++
 			}
 		}
-		if exist != int(mul.N) {
-			return 0, 0, fmt.Errorf("invalid number of valid signatures %d in multisig %d, should be %d", exist, n, mul.N)
+		if exist != int(mul.M) {
+			return 0, 0, fmt.Errorf("invalid number of valid signatures %d in multisig %d, should be %d", exist, n, mul.M)
 		}
 	}
 	if len(tr.TicketInput) > 0 {
