@@ -12,7 +12,6 @@ This  library is for managing AidosKuneen features including
 * [Address](https://github.com/AidosKuneen/aklib/tree/master/address)
 * [Transaction, Proof of Work](https://github.com/AidosKuneen/aklib/tree/master/tx)
  (Proof of Work with [Cuckoo Cycle](https://github.com/AidosKuneen/cuckoo))
-* [RPC client](https://github.com/AidosKuneen/aklib/tree/master/rpcclient)
 
 ## Requirements
 

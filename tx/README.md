@@ -43,7 +43,7 @@ are required to compile this.
 	}
 	if err := tr.Check(MainConfig,tx.TxNormal); err == nil {
 	}
-	if err := tr.CheckAll(GetTxFunction, aklib.MainConfig,TxNormal); err == nil {
+	if err := tr.CheckAll(aklib.MainConfig,GetTxFunction, TxNormal); err == nil {
 	}
 	h = tr.Hash()
 ```
