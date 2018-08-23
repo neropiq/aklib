@@ -104,7 +104,7 @@ func Build(conf *aklib.Config, w Wallet, ac string, tag []byte, outputs []*RawOu
 		if err != nil {
 			return nil, err
 		}
-		if err := tr.AddOutput(conf, adr.Address58(), uint64(-change)); err != nil {
+		if err := tr.AddOutput(conf, adr.Address58(conf), uint64(-change)); err != nil {
 			return nil, err
 		}
 	}

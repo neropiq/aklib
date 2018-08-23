@@ -1,13 +1,7 @@
 language: go
-sudo: required
 
 go:
 - "1.10.x"
-
-env:
-  - TEST_SUITE="-tags travis"
-  - TEST_SUITE="-run ^TestAddressMA$"
-  - TEST_SUITE="-run ^TestAddressTA$"
 
 before_install:
 - go get -u github.com/alecthomas/gometalinter
@@ -17,7 +11,7 @@ before_install:
 - go generate -x ./...
 
 script:
-- travis_wait 30 go test ./... ${TEST_SUITE} -v  -timeout 100m  -covermode=count -coverprofile=coverage.out
+- travis_wait 30 go test ./... -tags travis -v  -timeout 100m  -covermode=count -coverprofile=coverage.out
 
 after_success:
 - gometalinter -e bindata --deadline=1000s ./...

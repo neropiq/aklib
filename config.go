@@ -39,10 +39,10 @@ type Config struct {
 	Easiness       uint32
 	TicketEasiness uint32
 	PrefixPriv     []byte
-	PrefixAdrs     [][]byte
+	PrefixAdrs     []byte
 	PrefixMsig     []byte
-	// PrefixNkey     [][]byte
-	// PrefixNode     [][]byte
+	PrefixNkey     []byte
+	PrefixNode     []byte
 
 	DefaultPort         uint16
 	DefaultRPCPort      uint16
@@ -56,27 +56,14 @@ type Config struct {
 var (
 	//MainConfig is a Config for MainNet
 	MainConfig = &Config{
-		Name:           "mainnet",
-		Easiness:       0x3fffffff,
-		TicketEasiness: 0x03ffffff,
-		PrefixPriv:     []byte{0x06, 0xa2, 0x5e}, //"VM1" in base5
-		PrefixAdrs: [][]byte{
-			[]byte{0x26, 0xd1, 0x41}, //"SM1" in base5
-			[]byte{0x26, 0xd1, 0xb8}, //"SM5" in base5
-			[]byte{0x26, 0xd2, 0x12}, //"SM8" in base5
-			[]byte{0x26, 0xd2, 0x4d}, //"SMA" in base5
-		},
-		PrefixMsig: []byte{0x17, 0x80, 0x6f}, //GM1
-		// PrefixNkey: [][]byte{
-		// 	[]byte{0x30, 0x01, 0xbf}, //YM1
-		// 	[]byte{0x30, 0x01, 0xdd}, //YM2
-		// 	[]byte{0x30, 0x01, 0xfb}, //YM3
-		// },
-		// PrefixNode: [][]byte{
-		// 	[]byte{0x14, 0x70, 0x45}, //EM1
-		// 	[]byte{0x14, 0x70, 0x63}, //EM2
-		// 	[]byte{0x14, 0x70, 0x81}, //EM3
-		// },
+		Name:                "mainnet",
+		Easiness:            0x3fffffff,
+		TicketEasiness:      0x03ffffff,
+		PrefixPriv:          []byte{0x1d, 0x49}, //VM
+		PrefixAdrs:          []byte{0xab, 0x55}, //SM
+		PrefixMsig:          []byte{0x67, 0xbc}, //GM
+		PrefixNkey:          []byte{0x20, 0x62}, //YM
+		PrefixNode:          []byte{0x5a, 0x37}, //EM
 		DefaultPort:         14270,
 		DefaultRPCPort:      14271,
 		DefaultExplorerPort: 8080,
@@ -93,28 +80,14 @@ var (
 	}
 	//TestConfig is a Config for TestNet
 	TestConfig = &Config{
-		Name:           "testnet",
-		Easiness:       0x7fffffff,
-		TicketEasiness: 0x3fffffff,
-		PrefixPriv:     []byte{0x06, 0xa8, 0x91}, //"VT1" in base5
-		PrefixAdrs: [][]byte{
-			[]byte{0x26, 0xf9, 0xd0}, //"ST1" in base5
-			[]byte{0x26, 0xfa, 0x48}, //"ST5" in base5
-			[]byte{0x26, 0xfa, 0xa1}, //"ST8" in base5
-			[]byte{0x26, 0xfa, 0xdd}, //"STA" in base5
-		},
-		PrefixMsig: []byte{0x17, 0xa8, 0xfe}, //GT1
-
-		// PrefixNkey: [][]byte{
-		// 	[]byte{0x30, 0x2a, 0x4e}, //YT1
-		// 	[]byte{0x30, 0x2a, 0x6c}, //YT2
-		// 	[]byte{0x30, 0x2a, 0x8a}, //YT3
-		// },
-		// PrefixNode: [][]byte{
-		// 	[]byte{0x14, 0x98, 0xd4}, //ET1
-		// 	[]byte{0x14, 0x98, 0xf2}, //ET2
-		// 	[]byte{0x14, 0x99, 0x10}, //ET3
-		// },
+		Name:                "testnet",
+		Easiness:            0x7fffffff,
+		TicketEasiness:      0x3fffffff,
+		PrefixPriv:          []byte{0x1d, 0x64}, //VT
+		PrefixAdrs:          []byte{0xac, 0x08}, //ST
+		PrefixMsig:          []byte{0x68, 0x6f}, //GT
+		PrefixNkey:          []byte{0x20, 0x7d}, //YT
+		PrefixNode:          []byte{0x5a, 0xea}, //ET
 		DefaultPort:         14370,
 		DefaultRPCPort:      14371,
 		DefaultExplorerPort: 8081,
@@ -131,28 +104,14 @@ var (
 	}
 	//DebugConfig is a Config for debug
 	DebugConfig = &Config{
-		Name:           "debug",
-		Easiness:       0xffffffff,
-		TicketEasiness: 0x7fffffff,
-		PrefixPriv:     []byte{0x06, 0x9a, 0x1a}, //VD1
-		PrefixAdrs: [][]byte{
-			[]byte{0x26, 0x9b, 0x2c}, //SD1
-			[]byte{0x26, 0x9b, 0xa4}, //SD5
-			[]byte{0x26, 0x9b, 0xfd}, //SD8
-			[]byte{0x26, 0x9c, 0x39}, //SDA
-		},
-		PrefixMsig: []byte{0x17, 0x4a, 0x5a}, //GD1
-
-		// PrefixNkey: [][]byte{
-		// 	[]byte{0x30, 0x2a, 0x4e}, //YT1
-		// 	[]byte{0x30, 0x2a, 0x6c}, //YT2
-		// 	[]byte{0x30, 0x2a, 0x8a}, //YT3
-		// },
-		// PrefixNode: [][]byte{
-		// 	[]byte{0x14, 0x98, 0xd4}, //ET1
-		// 	[]byte{0x14, 0x98, 0xf2}, //ET2
-		// 	[]byte{0x14, 0x99, 0x10}, //ET3
-		// },
+		Name:                "debug",
+		Easiness:            0xffffffff,
+		TicketEasiness:      0x7fffffff,
+		PrefixPriv:          []byte{0x1d, 0x24}, //VD
+		PrefixAdrs:          []byte{0xaa, 0x67}, //SD
+		PrefixMsig:          []byte{0x66, 0xcd}, //GD
+		PrefixNkey:          []byte{0x20, 0x3e}, //YD
+		PrefixNode:          []byte{0x59, 0x48}, //ED
 		DefaultPort:         14370,
 		DefaultRPCPort:      14371,
 		DefaultExplorerPort: 8081,
@@ -164,7 +123,7 @@ var (
 		},
 		MessageMagic: 0xD9CBA322,
 		Genesis: map[string]uint64{
-			"AKADRST54Kg6dSJy7YjJBrsxisJjibnwn3hW7hhL19VSAQw4WWXC59wSrx": ADKSupply, //AKPRIVT5HssaAPgtDgj1Vpyz2bJRdZqmuFkGGhBJv5Dy8ckahFkdQAYbphmykyA,qewrty123
+			"": ADKSupply, //
 		},
 	}
 )

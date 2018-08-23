@@ -32,31 +32,21 @@ import (
 	"github.com/vmihailenco/msgpack"
 )
 
-func TestMultisigAddress1(t *testing.T) {
-	testMultisigAddress(t, aklib.MainConfig, "AKMSIGM1")
-	testMultisigAddress(t, aklib.TestConfig, "AKMSIGT1")
-	testMultisigAddress(t, aklib.DebugConfig, "AKMSIGD1")
+func TestMultisigAddress(t *testing.T) {
+	testMultisigAddress(t, aklib.MainConfig, "AKMSIGM")
+	testMultisigAddress(t, aklib.TestConfig, "AKMSIGT")
+	testMultisigAddress(t, aklib.DebugConfig, "AKMSIGD")
 }
 
-func TestAddress1(t *testing.T) {
-	testAddress(t, aklib.MainConfig, "AKADRSM1", Height2)
-	testAddress(t, aklib.TestConfig, "AKADRST1", Height2)
-	testAddress(t, aklib.DebugConfig, "AKADRSD1", Height2)
+func TestNodeAddress(t *testing.T) {
+	testAddress(t, aklib.MainConfig, "AKNODEM", true)
+	testAddress(t, aklib.TestConfig, "AKNODET", true)
+	testAddress(t, aklib.DebugConfig, "AKNODED", true)
 }
-
-func TestAddress5(t *testing.T) {
-	testAddress(t, aklib.MainConfig, "AKADRSM5", Height10)
-	testAddress(t, aklib.TestConfig, "AKADRST5", Height10)
-	testAddress(t, aklib.DebugConfig, "AKADRSD5", Height10)
-}
-func TestAddressM8(t *testing.T) {
-	testAddress(t, aklib.MainConfig, "AKADRSM8", Height16)
-}
-func TestAddressT8(t *testing.T) {
-	testAddress(t, aklib.TestConfig, "AKADRST8", Height16)
-}
-func TestAddressD8(t *testing.T) {
-	testAddress(t, aklib.DebugConfig, "AKADRSD8", Height16)
+func TestAddress(t *testing.T) {
+	testAddress(t, aklib.MainConfig, "AKADRSM", false)
+	testAddress(t, aklib.TestConfig, "AKADRST", false)
+	testAddress(t, aklib.DebugConfig, "AKADRSD", false)
 }
 
 func testMultisigAddress(t *testing.T, net *aklib.Config, adr string) {
@@ -69,31 +59,27 @@ func testMultisigAddress(t *testing.T, net *aklib.Config, adr string) {
 		panic(err)
 	}
 	var a1, a2, a3 *Address
-
-	seed := GenerateSeed()
 	var err error
-	a1, err = New(Height10, seed, net)
+	a1, err = New(net, false)
 	if err != nil {
 		t.Error(err)
 	}
-	seed = GenerateSeed()
-	a2, err = New(Height10, seed, net)
+	a2, err = New(net, false)
 	if err != nil {
 		t.Error(err)
 	}
-	seed = GenerateSeed()
-	a3, err = New(Height10, seed, net)
+	a3, err = New(net, false)
 	if err != nil {
 		t.Error(err)
 	}
-	msig := MultisigAddress(net, 2, a1.Address(), a2.Address(), a3.Address())
+	msig := MultisigAddress(net, 2, a1.Address(net), a2.Address(net), a3.Address(net))
 	if !strings.HasPrefix(msig, adr) {
 		t.Error("invalid msig adr", msig)
 	}
-
+	t.Log(msig)
 }
 
-func testAddress(t *testing.T, net *aklib.Config, adr string, h byte) {
+func testAddress(t *testing.T, net *aklib.Config, adr string, isNode bool) {
 	pwd1 := make([]byte, 15)
 	if _, err := rand.Read(pwd1); err != nil {
 		panic(err)
@@ -102,38 +88,45 @@ func testAddress(t *testing.T, net *aklib.Config, adr string, h byte) {
 	if _, err := rand.Read(pwd2); err != nil {
 		panic(err)
 	}
-	seed := GenerateSeed()
 	var a *Address
 	var err error
-	a, err = New(h, seed, net)
+	a, err = New(net, isNode)
 	if err != nil {
 		t.Error(err)
 	}
+	t.Log(a.privateKey)
 
-	pk58 := a.Address58()
+	pk58 := a.Address58(net)
 	t.Log(pk58)
 	if pk58[:len(adr)] != adr {
 		t.Error("invalid address prefix")
 	}
-	pk, h2, err := ParseAddress58(pk58, net)
+	pk, fr2, err := ParseAddress58(net, pk58)
 	if err != nil {
 		t.Error(err)
 	}
-	if h2 != h {
-		t.Error("invalid height")
+	if fr2 != isNode {
+		t.Error("invalid address type")
 	}
-	pk581 := To58(a.Address())
+	pk581, err := Address58(net, a.Address(net))
+	if err != nil {
+		t.Error(err)
+	}
 	if pk58 != pk581 {
 		t.Error("invalid To58")
 	}
-	pk2 := a.Address()
+	pk2 := a.Address(net)
 	if !bytes.Equal(pk, pk2) {
 		t.Error("invalid frompk58", hex.EncodeToString(pk), hex.EncodeToString(pk2))
 	}
-	msg := []byte("This is a test for XMSS.")
-	sig := a.Sign(msg)
-	if !Verify(sig, msg) {
-		t.Error("signature is invalid")
+	msg := []byte("This is a test for glyph.")
+	sig, err := a.Sign(msg)
+	if err != nil {
+		t.Log(a.privateKey)
+		t.Error(err)
+	}
+	if err := Verify(sig, msg); err != nil {
+		t.Error(err)
 	}
 
 	b, err := json.Marshal(a)
@@ -145,12 +138,12 @@ func testAddress(t *testing.T, net *aklib.Config, adr string, h byte) {
 	if err != nil {
 		t.Error(err)
 	}
-	if c.LeafNo() != 1 {
-		t.Error("invalid unmarshal")
+	sig, err = c.Sign(msg)
+	if err != nil {
+		t.Error(err)
 	}
-	sig = c.Sign(msg)
-	if !Verify(sig, msg) {
-		t.Error("signature is invalid")
+	if err := Verify(sig, msg); err != nil {
+		t.Error(err)
 	}
 
 	mb, err := msgpack.Marshal(a)
@@ -161,24 +154,30 @@ func testAddress(t *testing.T, net *aklib.Config, adr string, h byte) {
 	if err := msgpack.Unmarshal(mb, &mc); err != nil {
 		t.Error(err)
 	}
-	if mc.LeafNo() != 1 {
-		t.Error("invalid unmarshal")
+
+	sig, err = mc.Sign(msg)
+	if err != nil {
+		t.Error(err)
 	}
-	sig = mc.Sign(msg)
-	if !Verify(sig, msg) {
-		t.Error("signature is invalid")
+	if err := Verify(sig, msg); err != nil {
+		t.Error(err)
 	}
 }
 
 func TestAddress2(t *testing.T) {
-	seed := GenerateSeed()
-	a, err := New(Height10, seed, aklib.MainConfig)
-	if err != nil {
-		t.Error(err)
-	}
 	msg := []byte("This is a test for XMSS.")
-	sig := a.Sign(msg)
-	if !Verify(sig, msg) {
-		t.Error("signature is invalid")
+
+	for _, fr := range []bool{true, false} {
+		a, err := New(aklib.MainConfig, fr)
+		if err != nil {
+			t.Error(err)
+		}
+		sig, err := a.Sign(msg)
+		if err != nil {
+			t.Error(err)
+		}
+		if err := Verify(sig, msg); err != nil {
+			t.Error(err)
+		}
 	}
 }

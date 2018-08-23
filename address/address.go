@@ -27,29 +27,20 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"log"
 	"sort"
 
 	"github.com/AidosKuneen/aklib"
+	"github.com/AidosKuneen/glyph"
 	sha256 "github.com/AidosKuneen/sha256-simd"
-	"github.com/AidosKuneen/xmss"
 	"github.com/vmihailenco/msgpack"
-)
-
-//Height represents height of Merkle Tree for XMSS
-const (
-	Height2 = iota
-	Height10
-	Height16
-	Height20
 )
 
 var (
 	prefixAdrsString = "AKADR"
 	prefixMsigString = "AKMSI"
+	prefixNodeString = "AKNOD"
 )
-
-//Heights converts height byte to real height.
-var Heights = []byte{2, 10, 16, 20}
 
 //Signature is a signature for hashed-address..
 type Signature struct {
@@ -59,10 +50,8 @@ type Signature struct {
 
 //Address represents an address an assciated Merkle Tree in ADK.
 type Address struct {
-	prefixPub  []byte
-	privateKey *xmss.Merkle
-	Seed       []byte
-	Height     byte
+	IsNode     bool
+	privateKey *glyph.SigningKey
 }
 
 func enc(text []byte, pwd []byte) []byte {
@@ -79,120 +68,166 @@ func enc(text []byte, pwd []byte) []byte {
 	return ctext
 }
 
-//New returns Address struct.
-func New(h byte, seed []byte, config *aklib.Config) (*Address, error) {
-	if h > Height20 {
-		return nil, errors.New("invalid height")
+func prefixAdrs(config *aklib.Config, isNode bool) []byte {
+	if isNode {
+		return config.PrefixNode
 	}
+	return config.PrefixAdrs
+}
+
+func prefixPriv(config *aklib.Config, isNode bool) []byte {
+	if isNode {
+		return config.PrefixNkey
+	}
+	return config.PrefixPriv
+}
+
+//FromSeed makes Address struct from the seed.
+func FromSeed(config *aklib.Config, seed []byte) (*Address, error) {
+	isNode := false
+	switch {
+	case bytes.Equal(seed[:2], config.PrefixPriv):
+		isNode = false
+	case bytes.Equal(seed[:2], config.PrefixNkey):
+		isNode = true
+	default:
+		return nil, errors.New("unknown seed")
+	}
+
+	sk, err := glyph.NewSigningKey(seed[2:])
+	if err != nil {
+		return nil, err
+	}
+
 	return &Address{
-		privateKey: xmss.NewMerkle(Heights[h], seed),
-		Seed:       seed,
-		prefixPub:  config.PrefixAdrs[h],
-		Height:     Heights[h],
+		IsNode:     isNode,
+		privateKey: sk,
+	}, nil
+}
+
+//New returns a new Address struct.
+func New(config *aklib.Config, isNode bool) (*Address, error) {
+	return NewFromSeed(config, GenerateSeed32(), isNode)
+}
+
+//NewFromSeed returns a new Address struct built from the seed.
+func NewFromSeed(config *aklib.Config, seed []byte, isNode bool) (*Address, error) {
+	if len(seed) != 32 {
+		return nil, errors.New("invalid length of seed")
+	}
+	sk := glyph.NewSKFromSeed(seed)
+	return &Address{
+		IsNode:     isNode,
+		privateKey: sk,
 	}, nil
 }
 
 //PublicKey returns public key.
 func (a *Address) PublicKey() []byte {
-	return a.privateKey.PublicKey()
+	return a.privateKey.PK().Bytes()
 }
 
 //Address returns the address in binary..
-func (a *Address) Address() []byte {
-	pub := a.privateKey.PublicKey()
+func (a *Address) Address(cfg *aklib.Config) []byte {
+	pub := a.PublicKey()
 	hpub := sha256.Sum256(pub)
-	r := make([]byte, 32+3)
-	copy(r, a.prefixPub)
-	copy(r[3:], hpub[:])
-	return r
+	return append(prefixAdrs(cfg, a.IsNode), hpub[:]...)
 }
 
 //Address58 returns base58 encoded address.
-func (a *Address) Address58() string {
-	return To58(a.Address())
+func (a *Address) Address58(cfg *aklib.Config) string {
+	a58, err := Address58(cfg, a.Address(cfg))
+	if err != nil {
+		panic(err)
+	}
+	return a58
 }
 
-//To58 converts address bytes to encode58 format.
-func To58(p []byte) string {
+//Address58 converts address bytes to encode58 format.
+func Address58(config *aklib.Config, p []byte) (string, error) {
+	var prefix string
+	switch {
+	case bytes.Equal(p[:2], config.PrefixAdrs):
+		prefix = prefixAdrsString
+	case bytes.Equal(p[:2], config.PrefixNode):
+		prefix = prefixNodeString
+	default:
+		return "", errors.New("unknown prefix")
+	}
+
+	return prefix + Encode58(p), nil
+}
+
+//Address58ForAddress converts address bytes to encode58 format.
+func Address58ForAddress(p []byte) string {
 	return prefixAdrsString + Encode58(p)
 }
 
 //ParseAddress58 parses and checks base58 encoded address
 //and returns binary public key and its height.
-func ParseAddress58(pub58 string, cfg *aklib.Config) ([]byte, byte, error) {
+func ParseAddress58(cfg *aklib.Config, pub58 string) ([]byte, bool, error) {
 	if len(pub58) <= len(prefixAdrsString) {
-		return nil, 0, errors.New("invalid length")
+		return nil, false, errors.New("invalid length")
 	}
-	if pub58[:len(prefixAdrsString)] != prefixAdrsString {
-		return nil, 0, errors.New("invalid prefix string in public key")
+	prefix := pub58[:len(prefixAdrsString)]
+
+	pub, err := Decode58(pub58[len(prefixAdrsString):])
+	if err != nil {
+		return nil, false, err
+	}
+	if len(pub) != 32+2 {
+		return nil, false, errors.New("invalid length")
+	}
+	if bytes.Equal(pub[:2], cfg.PrefixAdrs) && prefix == prefixAdrsString {
+		return pub, false, nil
+	}
+	if bytes.Equal(pub[:2], cfg.PrefixNode) && prefix == prefixNodeString {
+		return pub, true, nil
+	}
+	return nil, false, errors.New("invalid prefix")
+}
+
+//ParseAddress58ForAddress parses and checks base58 encoded address
+//and returns binary public key and its height.
+func ParseAddress58ForAddress(pub58 string) ([]byte, error) {
+	if len(pub58) <= len(prefixAdrsString) {
+		return nil, errors.New("invalid length")
+	}
+	prefix := pub58[:len(prefixAdrsString)]
+	if prefix != prefixAdrsString {
+		return nil, errors.New("invalid prefix")
 	}
 	pub, err := Decode58(pub58[len(prefixAdrsString):])
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
-	if len(pub) != 32+3 {
-		return nil, 0, errors.New("invalid length")
+	if len(pub) != 32+2 {
+		return nil, errors.New("invalid length")
 	}
-	if cfg == nil {
-		return pub, 255, nil
-	}
-	for height := byte(Height2); height <= Height20; height++ {
-		pref := cfg.PrefixAdrs[height]
-		if bytes.Equal(pub[:len(pref)], pref) {
-			return pub, height, nil
-		}
-	}
-	return nil, 0, errors.New("invalid public key")
+	return pub, nil
 }
 
 //Address returns address bytes from sig.
-func (sig *Signature) Address(cfg *aklib.Config) ([]byte, error) {
-	r := make([]byte, 32+3)
+func (sig *Signature) Address(cfg *aklib.Config, isNode bool) []byte {
 	hadr := sha256.Sum256(sig.PublicKey)
-	h := 0
-	switch sig.PublicKey[0] {
-	case 2:
-		h = 0
-	case 10:
-		h = 1
-	case 16:
-		h = 2
-	case 20:
-		h = 3
-	default:
-		return nil, errors.New("invalid public key")
-	}
-	copy(r, cfg.PrefixAdrs[h])
-	copy(r[3:], hadr[:])
-	return r, nil
-}
-
-//Index returns signature indes(idx_sig).
-func (sig *Signature) Index() (uint32, error) {
-	return xmss.IndexFromSig(sig.Sig)
+	return append(prefixAdrs(cfg, isNode), hadr[:]...)
 }
 
 type address struct {
-	Seed       []byte
-	PrivateKey *xmss.Merkle
-	PrefixPub  []byte
-	Height     byte
+	IsNode     bool
+	PrivateKey *glyph.SigningKey
 }
 
 func (a *Address) exports() *address {
 	return &address{
-		Seed:       a.Seed,
+		IsNode:     a.IsNode,
 		PrivateKey: a.privateKey,
-		PrefixPub:  a.prefixPub,
-		Height:     a.Height,
 	}
 }
 
 func (a *Address) imports(s *address) {
-	a.Seed = s.Seed
+	a.IsNode = s.IsNode
 	a.privateKey = s.PrivateKey
-	a.prefixPub = s.PrefixPub
-	a.Height = s.Height
 }
 
 //MarshalJSON  marshals Merkle into valid JSON.
@@ -225,33 +260,34 @@ func (a *Address) DecodeMsgpack(dec *msgpack.Decoder) error {
 	return err
 }
 
-//LeafNo returns leaf number we will use next.
-func (a *Address) LeafNo() uint64 {
-	return a.privateKey.LeafNo()
-}
-
-//SetLeafNo adds sets leaf no
-//xmsss  should refreshe auth and stack in MerkleTree..
-//it returns an error if tried to set past index.
-func (a *Address) SetLeafNo(n uint64) error {
-	return a.privateKey.SetLeafNo(n)
-}
-
 //Sign signs msg.
-func (a *Address) Sign(msg []byte) *Signature {
+func (a *Address) Sign(msg []byte) (*Signature, error) {
+	sig, err := a.privateKey.Sign(msg)
+	if err != nil {
+		return nil, err
+	}
 	return &Signature{
 		PublicKey: a.PublicKey(),
-		Sig:       a.privateKey.Sign(msg),
-	}
+		Sig:       sig.Bytes(),
+	}, nil
 }
 
 //Verify verifies msg from a node with node key..
-func Verify(bsig *Signature, msg []byte) bool {
-	return xmss.Verify(bsig.Sig, msg, bsig.PublicKey)
+func Verify(bsig *Signature, msg []byte) error {
+	pk, err := glyph.NewPublickey(bsig.PublicKey)
+	if err != nil {
+		return err
+	}
+	sig, err := glyph.NewSignature(bsig.Sig)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	return pk.Verify(sig, msg)
 }
 
-//GenerateSeed generates a new 64 bytes seed.
-func GenerateSeed() []byte {
+//GenerateSeed32 generates a new 32 bytes seed.
+func GenerateSeed32() []byte {
 	seed := make([]byte, 32)
 	if _, err := rand.Read(seed); err != nil {
 		panic(err)

@@ -63,7 +63,7 @@ func (h Hash) String() string {
 //GetTXFunc gets tx.
 type GetTXFunc func(hash []byte) (*Body, error)
 
-//Address  is an address of xmss.
+//Address  is an address of glyph.
 type Address []byte
 
 //Types when hashing a tx.
@@ -209,12 +209,9 @@ func (body *Body) AddOutput(cfg *aklib.Config, adr string, v uint64) error {
 	var pub []byte
 	var err error
 	if adr != "" {
-		pub, _, err = address.ParseAddress58(adr, cfg)
+		pub, _, err = address.ParseAddress58(cfg, adr)
 		if err != nil {
 			return err
-		}
-		if !checkAdrsPrefix(cfg, pub) {
-			return errors.New("invalid address for this network")
 		}
 	}
 	body.Outputs = append(body.Outputs, &Output{
@@ -239,7 +236,7 @@ func (body *Body) AddMultisigOut(cfg *aklib.Config, m byte, v uint64, adrs ...st
 	}
 	as := make([]Address, len(adrs))
 	for i, adr := range adrs {
-		pub, _, err := address.ParseAddress58(adr, cfg)
+		pub, _, err := address.ParseAddress58(cfg, adr)
 		if err != nil {
 			return err
 		}
@@ -262,7 +259,11 @@ func (tr *Transaction) Sign(a *address.Address) error {
 	if err != nil {
 		return err
 	}
-	tr.Signatures = append(tr.Signatures, a.Sign(dat))
+	sig, err := a.Sign(dat)
+	if err != nil {
+		return err
+	}
+	tr.Signatures = append(tr.Signatures, sig)
 	return nil
 }
 
@@ -272,7 +273,7 @@ func (tr *Transaction) Signature(a *address.Address) (*address.Signature, error)
 	if err != nil {
 		return nil, err
 	}
-	return a.Sign(dat), nil
+	return a.Sign(dat)
 }
 
 //AddSig adds a signature  to tx.
@@ -374,16 +375,16 @@ func (bs *Address) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	var err error
-	*bs, _, err = address.ParseAddress58(h, nil)
+	*bs, err = address.ParseAddress58ForAddress(h)
 	return err
 }
 
 //MarshalJSON returns m as the JSON encoding of m.
 func (bs *Address) MarshalJSON() ([]byte, error) {
-	adr := address.To58(*bs)
+	adr := address.Address58ForAddress(*bs)
 	return json.Marshal(&adr)
 }
 
 func (bs Address) String() string {
-	return address.To58(bs)
+	return address.Address58ForAddress(bs)
 }

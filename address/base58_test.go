@@ -49,38 +49,36 @@ func TestBase58(t *testing.T) {
 }
 
 func BenchmarkBase58ASeed(b *testing.B) {
-	from := make([]byte, 32+3+4)
-	to := make([]byte, 32+3+4)
+	from := make([]byte, 32+2+4)
+	to := make([]byte, 32+2+4)
 	for i := range to {
 		to[i] = 0xff
 	}
 	es := []string{
-		"VT1",
-		"VM1",
-		"VD1",
+		"VT",
+		"VM",
+		"VD",
+
+		"YT",
+		"YM",
+		"YD",
 	}
-loop:
 	for i := 0; i <= 0xff; i++ {
 		from[0] = byte(i)
 		to[0] = byte(i)
-		for k := 0; k <= 0xff; k++ {
-			from[1] = byte(k)
-			to[1] = byte(k)
-			for j := 0; j <= 0xff; j++ {
-				from[2] = byte(j)
-				to[2] = byte(j)
-				ef := Encode58(from)
-				et := Encode58(to)
-				if ef[0] == et[0] && ef[1] == et[1] && ef[2] == et[2] {
-					for m := len(es) - 1; m >= 0; m-- {
-						e := es[m]
-						if ef[0] == e[0] && ef[1] == e[1] && ef[2] == e[2] {
-							fmt.Printf("[]byte{0x%02x, 0x%02x, 0x%02x}, //%s\n", i, k, j, e)
-							es = append(es[:m], es[m+1:]...)
-							if len(es) == 0 {
-								break loop
-							}
-							break
+		for j := 0; j <= 0xff; j++ {
+			from[1] = byte(j)
+			to[1] = byte(j)
+			ef := Encode58(from)
+			et := Encode58(to)
+			if ef[0] == et[0] && ef[1] == et[1] {
+				for m := len(es) - 1; m >= 0; m-- {
+					e := es[m]
+					if ef[0] == e[0] && ef[1] == e[1] {
+						fmt.Printf("[]byte{0x%02x, 0x%02x}, //%s\n", i, j, e)
+						es = append(es[:m], es[m+1:]...)
+						if len(es) == 0 {
+							return
 						}
 					}
 				}
@@ -90,51 +88,41 @@ loop:
 }
 
 func BenchmarkBase58(b *testing.B) {
-	from := make([]byte, 32+3)
-	to := make([]byte, 32+3)
+	from := make([]byte, 32+2)
+	to := make([]byte, 32+2)
 	for i := range to {
 		to[i] = 0xff
 	}
 	es := []string{
-		"ST1", "ST5", "ST8", "STA",
-		// "YT1", "YT2", "YT3",
-		// "ET1", "ET2", "ET3",
+		"ST",
+		"ET",
 
-		"SM1", "SM5", "SM8", "SMA",
-		// "YM1", "YM2", "YM3",
-		// "EM1", "EM2", "EM3",
+		"SM",
+		"EM",
 
-		"SD1", "SD5", "SD8", "SDA",
-		// "YD1", "YD2", "YD3",
-		// "ED1", "ED2", "ED3",
+		"SD",
+		"ED",
 
-		"GT1",
-		"GM1",
-		"GD1",
+		"GT",
+		"GD",
 	}
 
-loop:
 	for i := 0; i <= 0xff; i++ {
 		from[0] = byte(i)
 		to[0] = byte(i)
-		for k := 0; k <= 0xff; k++ {
-			from[1] = byte(k)
-			to[1] = byte(k)
-			for j := 0; j <= 0xff; j++ {
-				from[2] = byte(j)
-				to[2] = byte(j)
-				ef := Encode58(from)
-				et := Encode58(to)
-				if ef[0] == et[0] && ef[1] == et[1] && ef[2] == et[2] {
-					for m := len(es) - 1; m >= 0; m-- {
-						e := es[m]
-						if ef[0] == e[0] && ef[1] == e[1] && ef[2] == e[2] {
-							fmt.Printf("[]byte{0x%02x, 0x%02x, 0x%02x}, //%s\n", i, k, j, e)
-							es = append(es[:m], es[m+1:]...)
-							if len(es) == 0 {
-								break loop
-							}
-							break
+		for j := 0; j <= 0xff; j++ {
+			from[1] = byte(j)
+			to[1] = byte(j)
+			ef := Encode58(from)
+			et := Encode58(to)
+			if ef[0] == et[0] && ef[1] == et[1] {
+				for m := len(es) - 1; m >= 0; m-- {
+					e := es[m]
+					if ef[0] == e[0] && ef[1] == e[1] {
+						fmt.Printf("[]byte{0x%02x, 0x%02x}, //%s\n", i, j, e)
+						es = append(es[:m], es[m+1:]...)
+						if len(es) == 0 {
+							return
 						}
 					}
 				}

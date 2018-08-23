@@ -56,15 +56,10 @@ func hasUunused(adrs []*addresses) bool {
 }
 
 func checkAdrsPrefix(cfg *aklib.Config, adr Address) bool {
-	if len(adr) != 35 {
+	if len(adr) != 34 {
 		return false
 	}
-	for _, p := range cfg.PrefixAdrs {
-		if bytes.Equal(p, adr[:len(p)]) {
-			return true
-		}
-	}
-	return false
+	return bytes.HasPrefix(adr, cfg.PrefixAdrs)
 }
 
 //Check checks the tx.
@@ -266,8 +261,8 @@ func (tr *Transaction) Check(cfg *aklib.Config, typ Type) error {
 		return err
 	}
 	for n, sig := range tr.Signatures {
-		if !address.Verify(sig, dat) {
-			return fmt.Errorf("failed to verify a signature at %d", n)
+		if err := address.Verify(sig, dat); err != nil {
+			return fmt.Errorf("failed to verify a signature at %d: %v", n, err)
 		}
 		for nn := n + 1; nn < len(tr.Signatures); nn++ {
 			if bytes.Equal(sig.PublicKey, tr.Signatures[nn].PublicKey) {
@@ -281,7 +276,7 @@ func (tr *Transaction) Check(cfg *aklib.Config, typ Type) error {
 	return nil
 }
 
-func (tr *Transaction) total(getTX GetTXFunc, cfg *aklib.Config) (uint64, uint64, error) {
+func (tr *Transaction) total(cfg *aklib.Config, getTX GetTXFunc) (uint64, uint64, error) {
 	var totalout uint64
 	for _, o := range tr.Outputs {
 		totalout += o.Value
@@ -292,12 +287,8 @@ func (tr *Transaction) total(getTX GetTXFunc, cfg *aklib.Config) (uint64, uint64
 	var totalin uint64
 	adrs := make([]*addresses, 0, len(tr.Inputs)+1)
 	for _, sig := range tr.Signatures {
-		a, err := sig.Address(cfg)
-		if err != nil {
-			return 0, 0, err
-		}
 		adrs = append(adrs, &addresses{
-			adr: a,
+			adr: sig.Address(cfg, false),
 		})
 	}
 	for n, inp := range tr.Inputs {
@@ -351,7 +342,7 @@ func (tr *Transaction) total(getTX GetTXFunc, cfg *aklib.Config) (uint64, uint64
 
 //CheckAll checks the tx, including other txs refered by the tx..
 //Genesis block must be saved in the store
-func (tr *Transaction) CheckAll(getTX GetTXFunc, cfg *aklib.Config, typ Type) error {
+func (tr *Transaction) CheckAll(cfg *aklib.Config, getTX GetTXFunc, typ Type) error {
 	if err := tr.Check(cfg, typ); err != nil {
 		return err
 	}
@@ -360,7 +351,7 @@ func (tr *Transaction) CheckAll(getTX GetTXFunc, cfg *aklib.Config, typ Type) er
 			return err
 		}
 	}
-	tin, tout, err := tr.total(getTX, cfg)
+	tin, tout, err := tr.total(cfg, getTX)
 	if err != nil {
 		return err
 	}
