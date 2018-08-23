@@ -25,6 +25,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"log"
@@ -32,7 +33,6 @@ import (
 
 	"github.com/AidosKuneen/aklib"
 	"github.com/AidosKuneen/glyph"
-	sha256 "github.com/AidosKuneen/sha256-simd"
 	"github.com/vmihailenco/msgpack"
 )
 

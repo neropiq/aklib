@@ -23,12 +23,12 @@ package address
 import (
 	"bytes"
 	"crypto/hmac"
+	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/binary"
 	"errors"
 
 	"github.com/AidosKuneen/aklib"
-	sha256 "github.com/AidosKuneen/sha256-simd"
 )
 
 const prefixPrivString = "AKPRI"

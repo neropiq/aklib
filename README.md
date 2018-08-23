@@ -38,7 +38,6 @@ github.com/AidosKuneen/aklib                              MIT License
 github.com/AidosKuneen/cuckoo                             MIT License
 github.com/AidosKuneen/glyph                              MIT License
 github.com/AidosKuneen/numcpu                             MIT License
-github.com/AidosKuneen/sha256-simd                        Apache License 2.0
 github.com/AndreasBriese/bbloom                           MIT License, Public Domain
 github.com/blang/semver                                   MIT License
 github.com/dgraph-io/badger                               Apache License 2.0

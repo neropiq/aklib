@@ -51,7 +51,7 @@ type AddressIF interface {
 //Wallet is a wallet interface for getting UTXOs and a new address.
 type Wallet interface {
 	GetUTXO(string, uint64) ([]*UTXO, error)
-	NewAddress2(string) (*address.Address, error)
+	NewChangeAddress(string) (*address.Address, error)
 	GetLeaves() ([]Hash, error)
 }
 
@@ -100,7 +100,7 @@ func Build(conf *aklib.Config, w Wallet, ac string, tag []byte, outputs []*RawOu
 		return nil, fmt.Errorf("insufficient balance %v", change)
 	}
 	if change != 0 {
-		adr, err := w.NewAddress2(ac)
+		adr, err := w.NewChangeAddress(ac)
 		if err != nil {
 			return nil, err
 		}
