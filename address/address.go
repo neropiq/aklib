@@ -27,7 +27,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
-	"log"
 	"sort"
 
 	"github.com/AidosKuneen/aklib"
@@ -231,7 +230,6 @@ func Verify(bsig *Signature, msg []byte) error {
 	}
 	sig, err := glyph.NewSignature(bsig.Sig)
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 	return pk.Verify(sig, msg)
