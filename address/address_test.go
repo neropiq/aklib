@@ -94,7 +94,7 @@ func testAddress(t *testing.T, net *aklib.Config, adr string, isNode bool) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(a.privateKey)
+	t.Log(a.PrivateKey)
 
 	pk58 := a.Address58(net)
 	t.Log(pk58)
@@ -122,7 +122,7 @@ func testAddress(t *testing.T, net *aklib.Config, adr string, isNode bool) {
 	msg := []byte("This is a test for glyph.")
 	sig, err := a.Sign(msg)
 	if err != nil {
-		t.Log(a.privateKey)
+		t.Log(a.PrivateKey)
 		t.Error(err)
 	}
 	if err := Verify(sig, msg); err != nil {

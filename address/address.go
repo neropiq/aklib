@@ -26,14 +26,12 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/json"
 	"errors"
 	"log"
 	"sort"
 
 	"github.com/AidosKuneen/aklib"
 	"github.com/AidosKuneen/glyph"
-	"github.com/vmihailenco/msgpack"
 )
 
 var (
@@ -51,7 +49,7 @@ type Signature struct {
 //Address represents an address an assciated Merkle Tree in ADK.
 type Address struct {
 	IsNode     bool
-	privateKey *glyph.SigningKey
+	PrivateKey *glyph.SigningKey
 }
 
 func enc(text []byte, pwd []byte) []byte {
@@ -101,7 +99,7 @@ func FromSeed(config *aklib.Config, seed []byte) (*Address, error) {
 
 	return &Address{
 		IsNode:     isNode,
-		privateKey: sk,
+		PrivateKey: sk,
 	}, nil
 }
 
@@ -118,13 +116,13 @@ func NewFromSeed(config *aklib.Config, seed []byte, isNode bool) (*Address, erro
 	sk := glyph.NewSKFromSeed(seed)
 	return &Address{
 		IsNode:     isNode,
-		privateKey: sk,
+		PrivateKey: sk,
 	}, nil
 }
 
 //PublicKey returns public key.
 func (a *Address) PublicKey() []byte {
-	return a.privateKey.PK().Bytes()
+	return a.PrivateKey.PK().Bytes()
 }
 
 //Address returns the address in binary..
@@ -213,56 +211,9 @@ func (sig *Signature) Address(cfg *aklib.Config, isNode bool) []byte {
 	return append(prefixAdrs(cfg, isNode), hadr[:]...)
 }
 
-type address struct {
-	IsNode     bool
-	PrivateKey *glyph.SigningKey
-}
-
-func (a *Address) exports() *address {
-	return &address{
-		IsNode:     a.IsNode,
-		PrivateKey: a.privateKey,
-	}
-}
-
-func (a *Address) imports(s *address) {
-	a.IsNode = s.IsNode
-	a.privateKey = s.PrivateKey
-}
-
-//MarshalJSON  marshals Merkle into valid JSON.
-func (a *Address) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.exports())
-}
-
-//UnmarshalJSON  unmarshals JSON to Merkle.
-func (a *Address) UnmarshalJSON(b []byte) error {
-	var s address
-	err := json.Unmarshal(b, &s)
-	if err == nil {
-		a.imports(&s)
-	}
-	return err
-}
-
-//EncodeMsgpack  marshals Address into valid JSON.
-func (a *Address) EncodeMsgpack(enc *msgpack.Encoder) error {
-	return enc.Encode(a.exports())
-}
-
-//DecodeMsgpack  unmarshals JSON to Address.
-func (a *Address) DecodeMsgpack(dec *msgpack.Decoder) error {
-	var s address
-	err := dec.Decode(&s)
-	if err == nil {
-		a.imports(&s)
-	}
-	return err
-}
-
 //Sign signs msg.
 func (a *Address) Sign(msg []byte) (*Signature, error) {
-	sig, err := a.privateKey.Sign(msg)
+	sig, err := a.PrivateKey.Sign(msg)
 	if err != nil {
 		return nil, err
 	}

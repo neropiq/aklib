@@ -23,6 +23,7 @@ package tx
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 
 	"github.com/AidosKuneen/aklib"
@@ -92,6 +93,7 @@ func Build(conf *aklib.Config, w Wallet, ac string, tag []byte, outputs []*RawOu
 		i--
 	}
 	for ; i >= 0 && change > 0; i-- {
+		log.Println(utxos[i])
 		tr.AddInput(utxos[i].Hash, utxos[i].Index)
 		adrs = append(adrs, utxos[i].Address)
 		change -= int64(utxos[i].Value)
