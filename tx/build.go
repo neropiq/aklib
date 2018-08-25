@@ -51,8 +51,8 @@ type AddressIF interface {
 
 //Wallet is a wallet interface for getting UTXOs and a new address.
 type Wallet interface {
-	GetUTXO(string, uint64) ([]*UTXO, error)
-	NewChangeAddress(string) (*address.Address, error)
+	GetUTXO(uint64) ([]*UTXO, error)
+	NewChangeAddress() (*address.Address, error)
 	GetLeaves() ([]Hash, error)
 }
 
@@ -63,7 +63,7 @@ type Wallet2 interface {
 }
 
 //Build builds a tx for sending coins.
-func Build(conf *aklib.Config, w Wallet, ac string, tag []byte, outputs []*RawOutput) (*Transaction, error) {
+func Build(conf *aklib.Config, w Wallet, tag []byte, outputs []*RawOutput) (*Transaction, error) {
 	ls, err := w.GetLeaves()
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func Build(conf *aklib.Config, w Wallet, ac string, tag []byte, outputs []*RawOu
 		}
 		outtotal += o.Value
 	}
-	utxos, err := w.GetUTXO(ac, outtotal)
+	utxos, err := w.GetUTXO(outtotal)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func Build(conf *aklib.Config, w Wallet, ac string, tag []byte, outputs []*RawOu
 		return nil, fmt.Errorf("insufficient balance %v", change)
 	}
 	if change != 0 {
-		adr, err := w.NewChangeAddress(ac)
+		adr, err := w.NewChangeAddress()
 		if err != nil {
 			return nil, err
 		}
@@ -128,7 +128,7 @@ type BuildParam struct {
 }
 
 //Build2 builds a tx for sending coins with fee or ticket..
-func Build2(conf *aklib.Config, w Wallet2, ac string, p *BuildParam) (*Transaction, error) {
+func Build2(conf *aklib.Config, w Wallet2, p *BuildParam) (*Transaction, error) {
 	if p.PoWType == TypeRewardFee {
 		if p.Fee == 0 {
 			return nil, errors.New("fee is zero")
@@ -138,7 +138,7 @@ func Build2(conf *aklib.Config, w Wallet2, ac string, p *BuildParam) (*Transacti
 			Value:   p.Fee,
 		})
 	}
-	tr, err := Build(conf, w, ac, []byte(p.Comment), p.Dest)
+	tr, err := Build(conf, w, []byte(p.Comment), p.Dest)
 	if err != nil {
 		return nil, err
 	}
