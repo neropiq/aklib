@@ -185,7 +185,7 @@ func ParseAddress58(cfg *aklib.Config, pub58 string) ([]byte, bool, error) {
 }
 
 //ParseAddress58ForAddress parses and checks base58 encoded address
-//and returns binary public key and its height.
+//and returns binary public key.
 func ParseAddress58ForAddress(pub58 string) ([]byte, error) {
 	if len(pub58) <= len(prefixAdrsString) {
 		return nil, errors.New("invalid length")
@@ -246,6 +246,12 @@ func GenerateSeed32() []byte {
 
 //MultisigAddress returns an multisig address.
 func MultisigAddress(cfg *aklib.Config, m byte, address ...[]byte) string {
+	bmul := MultisigAddressByte(cfg, m, address...)
+	return prefixMsigString + Encode58(bmul)
+}
+
+//MultisigAddressByte returns an multisig address bytes.
+func MultisigAddressByte(cfg *aklib.Config, m byte, address ...[]byte) []byte {
 	s := sha256.New()
 	s.Write([]byte{m})
 	sort.Slice(address, func(i, j int) bool {
@@ -254,6 +260,28 @@ func MultisigAddress(cfg *aklib.Config, m byte, address ...[]byte) string {
 	for _, a := range address {
 		s.Write(a)
 	}
-	h := append(cfg.PrefixMsig, s.Sum(nil)...)
-	return prefixMsigString + Encode58(h)
+	return append(cfg.PrefixMsig, s.Sum(nil)...)
+}
+
+//ParseMultisigAddress parses and checks base58 encoded  multisig address
+//and returns binary address..
+func ParseMultisigAddress(cfg *aklib.Config, pub58 string) ([]byte, error) {
+	if len(pub58) <= len(prefixMsigString) {
+		return nil, errors.New("invalid length")
+	}
+	prefix := pub58[:len(prefixMsigString)]
+	if prefix != prefixMsigString {
+		return nil, errors.New("invalid prefix")
+	}
+	pub, err := Decode58(pub58[len(prefixMsigString):])
+	if err != nil {
+		return nil, err
+	}
+	if len(pub) != 32+2 {
+		return nil, errors.New("invalid length")
+	}
+	if !bytes.Equal(pub[:2], cfg.PrefixMsig) {
+		return nil, errors.New("invalid prefix")
+	}
+	return pub, nil
 }

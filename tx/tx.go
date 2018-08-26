@@ -100,11 +100,35 @@ type Output struct {
 	Value   uint64  `json:"value"`   //8 bytes
 }
 
-//MultiSigOut is an multisig output in transactions.
-type MultiSigOut struct {
+//MultisigStruct is a structure of  multisig.
+type MultisigStruct struct {
 	M         byte      `json:"n"`         //0 means normal payment, or M out of len(Address) multisig.
 	Addresses []Address `json:"addresses"` //< 65 * 32 bytes
-	Value     uint64    `json:"value"`     //8 bytes
+
+}
+
+//MultiSigOut is an multisig output in transactions.
+type MultiSigOut struct {
+	MultisigStruct
+	Value uint64 `json:"value"` //8 bytes
+}
+
+//AddressByte returns a multisig address in binary form.
+func (mout *MultisigStruct) AddressByte(cfg *aklib.Config) []byte {
+	adr := make([][]byte, len(mout.Addresses))
+	for i, a := range mout.Addresses {
+		adr[i] = a
+	}
+	return address.MultisigAddressByte(cfg, mout.M, adr...)
+}
+
+//Address returns a multisig address.
+func (mout *MultisigStruct) Address(cfg *aklib.Config) string {
+	adr := make([][]byte, len(mout.Addresses))
+	for i, a := range mout.Addresses {
+		adr[i] = a
+	}
+	return address.MultisigAddress(cfg, mout.M, adr...)
 }
 
 //MultiSigIn is an multisig input in transactions.
@@ -246,9 +270,11 @@ func (body *Body) AddMultisigOut(cfg *aklib.Config, m byte, v uint64, adrs ...st
 		as[i] = pub
 	}
 	body.MultiSigOuts = append(body.MultiSigOuts, &MultiSigOut{
-		M:         m,
-		Addresses: as,
-		Value:     v,
+		MultisigStruct: MultisigStruct{
+			M:         m,
+			Addresses: as,
+		},
+		Value: v,
 	})
 	return nil
 }

@@ -77,6 +77,13 @@ func testMultisigAddress(t *testing.T, net *aklib.Config, adr string) {
 		t.Error("invalid msig adr", msig)
 	}
 	t.Log(msig)
+	badr, err := ParseMultisigAddress(net, msig)
+	if err != nil {
+		t.Error(err)
+	}
+	if !bytes.Equal(badr, MultisigAddressByte(net, 2, a1.Address(net), a2.Address(net), a3.Address(net))) {
+		t.Error("invalid madr")
+	}
 }
 
 func testAddress(t *testing.T, net *aklib.Config, adr string, isNode bool) {

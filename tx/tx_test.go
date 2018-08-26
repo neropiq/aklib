@@ -519,9 +519,11 @@ func TestTX3(t *testing.T) {
 		t.Error("should be error")
 	}
 	tr.MultiSigOuts = append(tr.MultiSigOuts, &MultiSigOut{
-		M:         2,
-		Addresses: []Address{zero},
-		Value:     1,
+		MultisigStruct: MultisigStruct{
+			M:         2,
+			Addresses: []Address{zero},
+		},
+		Value: 1,
 	})
 	if err := tr.Sign(a[1]); err != nil {
 		t.Error(err)

@@ -44,6 +44,7 @@ const (
 	HeaderUnresolvedInfo
 	HeaderBrokenTx
 	HeaderAddressToTx
+	HeaderMultisigAddress
 	HeaderWallet
 	HeaderWalletAddress
 	HeaderWalletHistory
