@@ -47,6 +47,7 @@ const (
 	HeaderWallet
 	HeaderWalletAddress
 	HeaderWalletHistory
+	HeaderVtx
 )
 
 //Open open  or make a badger db.

@@ -35,7 +35,7 @@ type Vbody struct {
 	Type       ByteSlice `json:"type"`              //4 bytes
 	Time       time.Time `json:"time"`              //8 bytes
 	Message    ByteSlice `json:"message,omitempty"` //<255 bytes
-	Parent     []Hash    `json:"parent"`            //<8*32=256 bytes
+	Parent     [2]Hash    `json:"parent"`            //<8*32=256 bytes
 	Validators Hash      `json:"validators"`        //32 byte
 	Vote       []byte    `json:"-"`                 //not used
 }
@@ -47,7 +47,7 @@ type Vtransaction struct {
 }
 
 //NewV returns a validator transaction object.
-func NewV(s *aklib.Config, validators Hash, previous ...Hash) *Vtransaction {
+func NewV(s *aklib.Config, validators Hash, previous [2]Hash) *Vtransaction {
 	return &Vtransaction{
 		Vbody: &Vbody{
 			Type:       typeValidator,
