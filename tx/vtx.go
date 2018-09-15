@@ -64,7 +64,11 @@ func (tr *Vtransaction) Sign(a *address.Address) error {
 	if err != nil {
 		return err
 	}
-	tr.Signatures = append(tr.Signatures, a.Sign(dat))
+	sig, err := a.Sign(dat)
+	if err != nil {
+		return err
+	}
+	tr.Signatures = append(tr.Signatures, sig)
 	return nil
 }
 
@@ -74,7 +78,7 @@ func (tr *Vtransaction) Signature(a *address.Address) (*address.Signature, error
 	if err != nil {
 		return nil, err
 	}
-	return a.Sign(dat), nil
+	return a.Sign(dat)
 }
 
 //AddSig adds a signature  to tx.
