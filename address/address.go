@@ -102,19 +102,26 @@ func FromSeed(config *aklib.Config, seed []byte) (*Address, error) {
 	}, nil
 }
 
-//New returns a new Address struct.
-func New(config *aklib.Config, isNode bool) (*Address, error) {
-	return NewFromSeed(config, GenerateSeed32(), isNode)
-}
-
-//NewFromSeed returns a new Address struct built from the seed.
-func NewFromSeed(config *aklib.Config, seed []byte, isNode bool) (*Address, error) {
+//New returns a new Address struct built from the seed.
+func New(config *aklib.Config, seed []byte) (*Address, error) {
 	if len(seed) != 32 {
 		return nil, errors.New("invalid length of seed")
 	}
-	sk := glyph.NewSKFromSeed(seed)
+	sk := glyph.NewSK(seed)
 	return &Address{
-		IsNode:     isNode,
+		IsNode:     false,
+		PrivateKey: sk,
+	}, nil
+}
+
+//NewNode returns a new node address struct built from the seed.
+func NewNode(config *aklib.Config, seed []byte) (*Address, error) {
+	if len(seed) != 32 {
+		return nil, errors.New("invalid length of seed")
+	}
+	sk := glyph.NewSK(seed)
+	return &Address{
+		IsNode:     true,
 		PrivateKey: sk,
 	}, nil
 }

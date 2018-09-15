@@ -60,15 +60,18 @@ func testMultisigAddress(t *testing.T, net *aklib.Config, adr string) {
 	}
 	var a1, a2, a3 *Address
 	var err error
-	a1, err = New(net, false)
+	seed1 := GenerateSeed32()
+	seed2 := GenerateSeed32()
+	seed3 := GenerateSeed32()
+	a1, err = New(net, seed1)
 	if err != nil {
 		t.Error(err)
 	}
-	a2, err = New(net, false)
+	a2, err = New(net, seed2)
 	if err != nil {
 		t.Error(err)
 	}
-	a3, err = New(net, false)
+	a3, err = New(net, seed3)
 	if err != nil {
 		t.Error(err)
 	}
@@ -97,7 +100,13 @@ func testAddress(t *testing.T, net *aklib.Config, adr string, isNode bool) {
 	}
 	var a *Address
 	var err error
-	a, err = New(net, isNode)
+	seed := GenerateSeed32()
+
+	if isNode {
+		a, err = NewNode(net, seed)
+	} else {
+		a, err = New(net, seed)
+	}
 	if err != nil {
 		t.Error(err)
 	}
@@ -175,7 +184,14 @@ func TestAddress2(t *testing.T) {
 	msg := []byte("This is a test for XMSS.")
 
 	for _, fr := range []bool{true, false} {
-		a, err := New(aklib.MainConfig, fr)
+		var a *Address
+		var err error
+		seed := GenerateSeed32()
+		if fr {
+			a, err = NewNode(aklib.MainConfig, seed)
+		} else {
+			a, err = New(aklib.MainConfig, seed)
+		}
 		if err != nil {
 			t.Error(err)
 		}

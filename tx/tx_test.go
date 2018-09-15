@@ -49,7 +49,8 @@ func TestMain(m *testing.M) {
 	var err error
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	for i := range a {
-		a[i], err = address.New(aklib.DebugConfig, false)
+		seed := address.GenerateSeed32()
+		a[i], err = address.New(aklib.DebugConfig, seed)
 		if err != nil {
 			panic(err)
 		}
@@ -440,12 +441,13 @@ func TestTicket2(t *testing.T) {
 	tx2 := NewMinableTicket(aklib.DebugConfig, one, one)
 	tx2.AddInput(one, 0)
 	tx2.AddOutput(aklib.DebugConfig, a[0].Address58(aklib.DebugConfig), 543)
-
-	a1, err := address.New(aklib.DebugConfig, false)
+	seed1 := address.GenerateSeed32()
+	seed2 := address.GenerateSeed32()
+	a1, err := address.New(aklib.DebugConfig, seed1)
 	if err != nil {
 		t.Error(err)
 	}
-	a2, err := address.New(aklib.DebugConfig, false)
+	a2, err := address.New(aklib.DebugConfig, seed2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -594,7 +596,7 @@ func benchPoW(b *testing.B, r bool) {
 	} else {
 		seed1 = address.GenerateSeed32()
 	}
-	a1, err := address.NewFromSeed(aklib.MainConfig, seed1, false)
+	a1, err := address.New(aklib.MainConfig, seed1)
 	if err != nil {
 		b.Error(err)
 	}
