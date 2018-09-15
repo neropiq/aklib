@@ -65,7 +65,7 @@ func (h Hash) String() string {
 //GetTXFunc gets tx.
 type GetTXFunc func(hash []byte) (*Body, error)
 
-//Address  is an address of xmss.
+//Address  is an address of glyph.
 type Address []byte
 
 //Types when hashing a tx.
@@ -102,11 +102,35 @@ type Output struct {
 	Value   uint64  `json:"value"`   //8 bytes
 }
 
+//MultisigStruct is a structure of  multisig.
+type MultisigStruct struct {
+	M         byte      `json:"n"`         //0 means normal payment, or M out of len(Address) multisig.
+	Addresses []Address `json:"addresses"` //< 65 * 32 bytes
+
+}
+
 //MultiSigOut is an multisig output in transactions.
 type MultiSigOut struct {
-	N         byte      `json:"n"`         //0 means normal payment, or N out of len(Address) multisig.
-	Addresses []Address `json:"addresses"` //< 65 * 32 bytes
-	Value     uint64    `json:"value"`     //8 bytes
+	MultisigStruct
+	Value uint64 `json:"value"` //8 bytes
+}
+
+//AddressByte returns a multisig address in binary form.
+func (mout *MultisigStruct) AddressByte(cfg *aklib.Config) []byte {
+	adr := make([][]byte, len(mout.Addresses))
+	for i, a := range mout.Addresses {
+		adr[i] = a
+	}
+	return address.MultisigAddressByte(cfg, mout.M, adr...)
+}
+
+//Address returns a multisig address.
+func (mout *MultisigStruct) Address(cfg *aklib.Config) string {
+	adr := make([][]byte, len(mout.Addresses))
+	for i, a := range mout.Addresses {
+		adr[i] = a
+	}
+	return address.MultisigAddress(cfg, mout.M, adr...)
 }
 
 //MultiSigIn is an multisig input in transactions.
@@ -158,13 +182,13 @@ func New(s *aklib.Config, previous ...Hash) *Transaction {
 }
 
 //IssueTicket make and does PoW for a  transaction for issuing tx.
-func IssueTicket(s *aklib.Config, ticketOut *address.Address, previous ...Hash) (*Transaction, error) {
+func IssueTicket(s *aklib.Config, ticketOut []byte, previous ...Hash) (*Transaction, error) {
 	tr := &Transaction{
 		Body: &Body{
 			Type:         typeNormal,
 			Time:         time.Now().Truncate(time.Second),
 			Easiness:     s.TicketEasiness,
-			TicketOutput: ticketOut.Address(),
+			TicketOutput: ticketOut,
 			Parent:       previous,
 		},
 	}
@@ -211,12 +235,9 @@ func (body *Body) AddOutput(cfg *aklib.Config, adr string, v uint64) error {
 	var pub []byte
 	var err error
 	if adr != "" {
-		pub, _, err = address.ParseAddress58(adr, cfg)
+		pub, _, err = address.ParseAddress58(cfg, adr)
 		if err != nil {
 			return err
-		}
-		if !checkAdrsPrefix(cfg, pub) {
-			return errors.New("invalid address for this network")
 		}
 	}
 	body.Outputs = append(body.Outputs, &Output{
@@ -235,13 +256,13 @@ func (body *Body) AddMultisigIn(h Hash, idx byte) {
 }
 
 //AddMultisigOut add a mulsig output into tx.
-func (body *Body) AddMultisigOut(cfg *aklib.Config, n byte, v uint64, adrs ...string) error {
-	if len(adrs) < int(n) {
+func (body *Body) AddMultisigOut(cfg *aklib.Config, m byte, v uint64, adrs ...string) error {
+	if len(adrs) < int(m) {
 		return errors.New("length of adrs is less than n")
 	}
 	as := make([]Address, len(adrs))
 	for i, adr := range adrs {
-		pub, _, err := address.ParseAddress58(adr, cfg)
+		pub, _, err := address.ParseAddress58(cfg, adr)
 		if err != nil {
 			return err
 		}
@@ -251,9 +272,11 @@ func (body *Body) AddMultisigOut(cfg *aklib.Config, n byte, v uint64, adrs ...st
 		as[i] = pub
 	}
 	body.MultiSigOuts = append(body.MultiSigOuts, &MultiSigOut{
-		N:         n,
-		Addresses: as,
-		Value:     v,
+		MultisigStruct: MultisigStruct{
+			M:         m,
+			Addresses: as,
+		},
+		Value: v,
 	})
 	return nil
 }
@@ -264,7 +287,11 @@ func (tr *Transaction) Sign(a *address.Address) error {
 	if err != nil {
 		return err
 	}
-	tr.Signatures = append(tr.Signatures, a.Sign(dat))
+	sig, err := a.Sign(dat)
+	if err != nil {
+		return err
+	}
+	tr.Signatures = append(tr.Signatures, sig)
 	return nil
 }
 
@@ -274,7 +301,7 @@ func (tr *Transaction) Signature(a *address.Address) (*address.Signature, error)
 	if err != nil {
 		return nil, err
 	}
-	return a.Sign(dat), nil
+	return a.Sign(dat)
 }
 
 //AddSig adds a signature  to tx.
@@ -376,16 +403,16 @@ func (bs *Address) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	var err error
-	*bs, _, err = address.ParseAddress58(h, nil)
+	*bs, err = address.ParseAddress58ForAddress(h)
 	return err
 }
 
 //MarshalJSON returns m as the JSON encoding of m.
 func (bs *Address) MarshalJSON() ([]byte, error) {
-	adr := address.To58(*bs)
+	adr := address.Address58ForAddress(*bs)
 	return json.Marshal(&adr)
 }
 
 func (bs Address) String() string {
-	return address.To58(bs)
+	return address.Address58ForAddress(bs)
 }

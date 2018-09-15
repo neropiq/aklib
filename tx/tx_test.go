@@ -49,8 +49,8 @@ func TestMain(m *testing.M) {
 	var err error
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	for i := range a {
-		seed := address.GenerateSeed()
-		a[i], err = address.New(address.Height10, seed, aklib.DebugConfig)
+		seed := address.GenerateSeed32()
+		a[i], err = address.New(aklib.DebugConfig, seed)
 		if err != nil {
 			panic(err)
 		}
@@ -211,7 +211,7 @@ func TestTX(t *testing.T) {
 
 	tr = New(aklib.DebugConfig, zero, one)
 	tr.HashType = 0x11
-	if err := tr.AddOutput(aklib.DebugConfig, a[0].Address58(), 1234); err != nil {
+	if err := tr.AddOutput(aklib.DebugConfig, a[0].Address58(aklib.DebugConfig), 1234); err != nil {
 		t.Error(err)
 	}
 	hs1, err2 := tr.bytesForSign()
@@ -241,7 +241,7 @@ func TestTX(t *testing.T) {
 	}
 
 	tr = NewMinableFee(aklib.DebugConfig, zero, one)
-	if err := tr.AddOutput(aklib.DebugConfig, a[0].Address58(), 1234); err != nil {
+	if err := tr.AddOutput(aklib.DebugConfig, a[0].Address58(aklib.DebugConfig), 1234); err != nil {
 		t.Error(err)
 	}
 	if err := tr.AddOutput(aklib.DebugConfig, "", 2345); err != nil {
@@ -284,7 +284,7 @@ func TestTX(t *testing.T) {
 	}
 }
 func TestTicket(t *testing.T) {
-	ticket, err := IssueTicket(aklib.DebugConfig, a[0], zero)
+	ticket, err := IssueTicket(aklib.DebugConfig, a[0].Address(aklib.DebugConfig), zero)
 	if err != nil {
 		t.Error(err)
 	}
@@ -320,18 +320,18 @@ func TestTX2(t *testing.T) {
 	tr.AddInput(one, 0)
 	tr.AddInput(one, 1)
 	tr.AddMultisigIn(one, 1)
-	if err := tr.AddOutput(aklib.DebugConfig, a[0].Address58(), 111); err != nil {
+	if err := tr.AddOutput(aklib.DebugConfig, a[0].Address58(aklib.DebugConfig), 111); err != nil {
 		t.Error(err)
 	}
-	if err := tr.AddOutput(aklib.DebugConfig, a[0].Address58(), 222); err != nil {
+	if err := tr.AddOutput(aklib.DebugConfig, a[0].Address58(aklib.DebugConfig), 222); err != nil {
 		t.Error(err)
 	}
 	if err := tr.AddMultisigOut(aklib.DebugConfig, 3, 2,
-		a[0].Address58(), a[1].Address58(), a[2].Address58()); err != nil {
+		a[0].Address58(aklib.DebugConfig), a[1].Address58(aklib.DebugConfig), a[2].Address58(aklib.DebugConfig)); err != nil {
 		t.Error(err)
 	}
 	if err := tr.AddMultisigOut(aklib.DebugConfig, 2, 331,
-		a[0].Address58(), a[1].Address58()); err != nil {
+		a[0].Address58(aklib.DebugConfig), a[1].Address58(aklib.DebugConfig)); err != nil {
 		t.Error(err)
 	}
 
@@ -340,18 +340,18 @@ func TestTX2(t *testing.T) {
 	d2[0] = 0x2
 	m := make(store)
 	m[d1] = New(aklib.DebugConfig).Body
-	if err := m[d1].AddOutput(aklib.DebugConfig, a[1].Address58(), 543); err != nil {
+	if err := m[d1].AddOutput(aklib.DebugConfig, a[1].Address58(aklib.DebugConfig), 543); err != nil {
 		t.Error(err)
 	}
-	if err := m[d1].AddOutput(aklib.DebugConfig, a[1].Address58(), 0); err != nil {
+	if err := m[d1].AddOutput(aklib.DebugConfig, a[1].Address58(aklib.DebugConfig), 0); err != nil {
 		t.Error(err)
 	}
 	if err := m[d1].AddMultisigOut(aklib.DebugConfig, 2, 0,
-		a[2].Address58(), a[3].Address58(), a[4].Address58()); err != nil {
+		a[2].Address58(aklib.DebugConfig), a[3].Address58(aklib.DebugConfig), a[4].Address58(aklib.DebugConfig)); err != nil {
 		t.Error(err)
 	}
 	if err := m[d1].AddMultisigOut(aklib.DebugConfig, 2, 123,
-		a[2].Address58(), a[3].Address58(), a[4].Address58()); err != nil {
+		a[2].Address58(aklib.DebugConfig), a[3].Address58(aklib.DebugConfig), a[4].Address58(aklib.DebugConfig)); err != nil {
 		t.Error(err)
 	}
 	m[d2] = New(aklib.DebugConfig).Body
@@ -368,7 +368,7 @@ func TestTX2(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err != nil {
+	if err := tr.CheckAll(aklib.DebugConfig, m.GetTX, TypeNormal); err != nil {
 		t.Fatal(err)
 	}
 	tr.Outputs[0].Value = 110
@@ -385,7 +385,7 @@ func TestTX2(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err == nil {
+	if err := tr.CheckAll(aklib.DebugConfig, m.GetTX, TypeNormal); err == nil {
 		t.Fatal("should be error")
 	}
 	tr.Outputs[0].Value = 111
@@ -394,7 +394,7 @@ func TestTX2(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err == nil {
+	if err := tr.CheckAll(aklib.DebugConfig, m.GetTX, TypeNormal); err == nil {
 		t.Error("should be error")
 	}
 	tr.Signatures = tr.Signatures[:0]
@@ -410,22 +410,22 @@ func TestTX2(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err != nil {
+	if err := tr.CheckAll(aklib.DebugConfig, m.GetTX, TypeNormal); err != nil {
 		t.Error(err)
 	}
 
-	m[d1].MultiSigOuts[1].Addresses[1] = a[2].Address()
+	m[d1].MultiSigOuts[1].Addresses[1] = a[2].Address(aklib.DebugConfig)
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err == nil {
+	if err := tr.CheckAll(aklib.DebugConfig, m.GetTX, TypeNormal); err == nil {
 		t.Error("must be error")
 	}
 
-	m[d1].MultiSigOuts[1].Addresses[1] = a[3].Address()
+	m[d1].MultiSigOuts[1].Addresses[1] = a[3].Address(aklib.DebugConfig)
 	sig := tr.Signatures
 	tr.Signatures = tr.Signatures[:1]
-	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err == nil {
+	if err := tr.CheckAll(aklib.DebugConfig, m.GetTX, TypeNormal); err == nil {
 		t.Error("must be error")
 	}
 	tr.Signatures = sig
@@ -433,22 +433,21 @@ func TestTX2(t *testing.T) {
 	if err := tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tr.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err == nil {
+	if err := tr.CheckAll(aklib.DebugConfig, m.GetTX, TypeNormal); err == nil {
 		t.Error("must be error")
 	}
 }
 func TestTicket2(t *testing.T) {
 	tx2 := NewMinableTicket(aklib.DebugConfig, one, one)
 	tx2.AddInput(one, 0)
-	tx2.AddOutput(aklib.DebugConfig, a[0].Address58(), 543)
-
-	seed1 := address.GenerateSeed()
-	seed2 := address.GenerateSeed()
-	a1, err := address.New(address.Height10, seed1, aklib.DebugConfig)
+	tx2.AddOutput(aklib.DebugConfig, a[0].Address58(aklib.DebugConfig), 543)
+	seed1 := address.GenerateSeed32()
+	seed2 := address.GenerateSeed32()
+	a1, err := address.New(aklib.DebugConfig, seed1)
 	if err != nil {
 		t.Error(err)
 	}
-	a2, err := address.New(address.Height10, seed2, aklib.DebugConfig)
+	a2, err := address.New(aklib.DebugConfig, seed2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -457,37 +456,37 @@ func TestTicket2(t *testing.T) {
 	d[0] = 0x1
 	m := make(store)
 	m[d] = New(aklib.DebugConfig).Body
-	if err := m[d].AddOutput(aklib.DebugConfig, a1.Address58(), 543); err != nil {
+	if err := m[d].AddOutput(aklib.DebugConfig, a1.Address58(aklib.DebugConfig), 543); err != nil {
 		t.Error(err)
 	}
-	m[d].TicketOutput = a1.Address()
+	m[d].TicketOutput = a1.Address(aklib.DebugConfig)
 
 	if err := tx2.Sign(a1); err != nil {
 		t.Error(err)
 	}
-	if err := tx2.CheckAll(m.GetTX, aklib.DebugConfig, TypeRewardTicket); err != nil {
+	if err := tx2.CheckAll(aklib.DebugConfig, m.GetTX, TypeRewardTicket); err != nil {
 		t.Error(err)
 	}
 	if err := tx2.Sign(a2); err != nil {
 		t.Error(err)
 	}
-	if err := tx2.CheckAll(m.GetTX, aklib.DebugConfig, TypeRewardTicket); err == nil {
+	if err := tx2.CheckAll(aklib.DebugConfig, m.GetTX, TypeRewardTicket); err == nil {
 		t.Error("should be error")
 	}
 	tx2.Signatures = tx2.Signatures[:1]
 
-	m[d].TicketOutput = a2.Address()
-	if err := tx2.CheckAll(m.GetTX, aklib.DebugConfig, TypeRewardTicket); err == nil {
+	m[d].TicketOutput = a2.Address(aklib.DebugConfig)
+	if err := tx2.CheckAll(aklib.DebugConfig, m.GetTX, TypeRewardTicket); err == nil {
 		t.Error("must be error")
 	}
 
-	m[d].TicketOutput = a1.Address()
-	tx2.TicketOutput = a2.Address()
+	m[d].TicketOutput = a1.Address(aklib.DebugConfig)
+	tx2.TicketOutput = a2.Address(aklib.DebugConfig)
 
 	if err := tx2.PoW(); err != nil {
 		t.Error(err)
 	}
-	if err := tx2.CheckAll(m.GetTX, aklib.DebugConfig, TypeNormal); err != nil {
+	if err := tx2.CheckAll(aklib.DebugConfig, m.GetTX, TypeNormal); err != nil {
 		t.Error(err)
 	}
 }
@@ -518,13 +517,15 @@ func TestTX3(t *testing.T) {
 	}
 
 	tr = New(aklib.DebugConfig, zero, one)
-	if err := tr.AddMultisigOut(aklib.DebugConfig, 2, 0, a[1].Address58()); err == nil {
+	if err := tr.AddMultisigOut(aklib.DebugConfig, 2, 0, a[1].Address58(aklib.DebugConfig)); err == nil {
 		t.Error("should be error")
 	}
 	tr.MultiSigOuts = append(tr.MultiSigOuts, &MultiSigOut{
-		N:         2,
-		Addresses: []Address{zero},
-		Value:     1,
+		MultisigStruct: MultisigStruct{
+			M:         2,
+			Addresses: []Address{zero},
+		},
+		Value: 1,
 	})
 	if err := tr.Sign(a[1]); err != nil {
 		t.Error(err)
@@ -542,18 +543,18 @@ func TestMarshal(t *testing.T) {
 	tr.AddInput(one, 0)
 	tr.AddInput(one, 1)
 	tr.AddMultisigIn(one, 1)
-	if err := tr.AddOutput(aklib.DebugConfig, a[0].Address58(), 111); err != nil {
+	if err := tr.AddOutput(aklib.DebugConfig, a[0].Address58(aklib.DebugConfig), 111); err != nil {
 		t.Error(err)
 	}
-	if err := tr.AddOutput(aklib.DebugConfig, a[0].Address58(), 222); err != nil {
+	if err := tr.AddOutput(aklib.DebugConfig, a[0].Address58(aklib.DebugConfig), 222); err != nil {
 		t.Error(err)
 	}
 	if err := tr.AddMultisigOut(aklib.DebugConfig, 3, 2,
-		a[0].Address58(), a[1].Address58(), a[2].Address58()); err != nil {
+		a[0].Address58(aklib.DebugConfig), a[1].Address58(aklib.DebugConfig), a[2].Address58(aklib.DebugConfig)); err != nil {
 		t.Error(err)
 	}
 	if err := tr.AddMultisigOut(aklib.DebugConfig, 2, 331,
-		a[0].Address58(), a[1].Address58()); err != nil {
+		a[0].Address58(aklib.DebugConfig), a[1].Address58(aklib.DebugConfig)); err != nil {
 		t.Error(err)
 	}
 	if err := tr.Sign(a[1]); err != nil {
@@ -588,13 +589,14 @@ func benchPoW(b *testing.B, r bool) {
 	p := runtime.GOMAXPROCS(n)
 	tr := New(aklib.MainConfig, zero)
 	var seed1 []byte
+	var err error
 	if r {
 		tr.Time = time.Time{}
 		seed1 = make([]byte, 32)
 	} else {
-		seed1 = address.GenerateSeed()
+		seed1 = address.GenerateSeed32()
 	}
-	a1, err := address.New(address.Height10, seed1, aklib.MainConfig)
+	a1, err := address.New(aklib.MainConfig, seed1)
 	if err != nil {
 		b.Error(err)
 	}

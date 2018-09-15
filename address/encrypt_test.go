@@ -18,51 +18,34 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package tx
+package address
 
 import (
-	"github.com/AidosKuneen/aklib/address"
-	"github.com/AidosKuneen/aklib/arypack"
+	"bytes"
+	"crypto/rand"
+	"encoding/hex"
+	"testing"
 )
 
-//Pack returns tx in msgpack format.
-func (tx *Transaction) Pack() []byte {
-	b, err := arypack.Marshal(tx)
-	if err != nil {
-		panic(err)
+func TestEnc(t *testing.T) {
+	pt := make([]byte, 32)
+	if _, err := rand.Read(pt); err != nil {
+		t.Error(err)
 	}
-	return b
-}
-
-//Pack returns tx body in msgpack format.
-func (body *Body) Pack() []byte {
-	b, err := arypack.Marshal(body)
-	if err != nil {
-		panic(err)
+	pwd := make([]byte, 32)
+	if _, err := rand.Read(pwd); err != nil {
+		t.Error(err)
 	}
-	return b
-}
-
-//Pack returns tx bSignaturesody in msgpack format.
-func (sig *address.Signature) Pack() []byte {
-	b, err := arypack.Marshal(sig)
+	enc := EncryptSeed(pt, pwd)
+	t.Log(hex.EncodeToString(enc))
+	r, err := DecryptSeed(enc, pwd)
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
-	return b
-}
-
-//Unpack returns tx from msgpack bin data.
-func (tx *Transaction) Unpack(dat []byte) error {
-	return arypack.Unmarshal(dat, tx)
-}
-
-//Unpack returns tx from msgpack bin data.
-func (body *Body) Unpack(dat []byte) error {
-	return arypack.Unmarshal(dat, body)
-}
-
-//Unpack returns tx from msgpack bin data.
-func (sig *Signatures) Unpack(dat []byte) error {
-	return arypack.Unmarshal(dat, sig)
+	if !bytes.Equal(r, pt) {
+		t.Error("invalid enc and dec")
+	}
+	if _, err := DecryptSeed(enc, []byte{0}); err == nil {
+		t.Error("invalid enc and dec")
+	}
 }

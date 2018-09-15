@@ -36,15 +36,18 @@ func TestHD(t *testing.T) {
 	if _, err := rand.Read(masterkey); err != nil {
 		t.Fatal(err)
 	}
-	seed200 := HDseed(masterkey, Height2, 0, 0)
-	seed253 := HDseed(masterkey, Height2, 5, 3)
-	seed800 := HDseed(masterkey, Height16, 0, 0)
-	seedA00 := HDseed(masterkey, Height20, 0, 0)
-	seedA002 := HDseed(masterkey, Height20, 0, 0)
+	seed200 := HDseed(masterkey, 2, 0, 0)
+	seed253 := HDseed(masterkey, 2, 5, 3)
+	seed800 := HDseed(masterkey, 8, 0, 0)
+	seedA00 := HDseed(masterkey, 10, 0, 0)
+	seedA002 := HDseed(masterkey, 10, 0, 0)
 	log.Println(hex.EncodeToString(seed200))
 	log.Println(hex.EncodeToString(seed253))
 	log.Println(hex.EncodeToString(seed800))
 	log.Println(hex.EncodeToString(seedA00))
+	if len(seed200) != 32 {
+		t.Error("invalid length")
+	}
 	if bytes.Equal(seed200, seed253) {
 		t.Error("should not be equal")
 	}
@@ -66,32 +69,39 @@ func TestHD(t *testing.T) {
 	if !bytes.Equal(seedA00, seedA002) {
 		t.Error("should be equal")
 	}
-
+}
+func TestNodeHDSeed(t *testing.T) {
+	testHDSeed(t, aklib.MainConfig, "AKNKEYM", true)
+	testHDSeed(t, aklib.TestConfig, "AKNKEYT", true)
+	testHDSeed(t, aklib.DebugConfig, "AKNKEYD", true)
 }
 
-func TestHDSeed(t *testing.T) {
-	seed := GenerateSeed()
-	seed200 := HDseed(seed, Height2, 0, 0)
+func TestAddressHDSeed(t *testing.T) {
+	testHDSeed(t, aklib.MainConfig, "AKPRIVM", false)
+	testHDSeed(t, aklib.TestConfig, "AKPRIVT", false)
+	testHDSeed(t, aklib.DebugConfig, "AKPRIVD", false)
+}
+
+func testHDSeed(t *testing.T, net *aklib.Config, adr string, fr bool) {
+	seed := GenerateSeed32()
 	pwd1 := []byte("qewrty123")
-	s58 := HDSeed58(aklib.TestConfig, seed200, pwd1)
+	s58 := HDSeed58(net, seed, pwd1, fr)
 	t.Log(s58)
-	if !strings.HasPrefix(s58, "AKPRIVT1") {
-		t.Error("invaild prefix")
+	if !strings.HasPrefix(s58, adr) {
+		t.Error("invaild prefix", s58, adr)
 	}
-	if _, err := HDFrom58(s58, []byte("wrong"), aklib.DebugConfig); err == nil {
+	_, _, err := HDFrom58(net, s58, []byte("wrong"))
+	if err == nil {
 		t.Error("invalid from58")
 	}
-	rec, err := HDFrom58(s58, pwd1, aklib.DebugConfig)
+	rec, fr2, err := HDFrom58(net, s58, pwd1)
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(rec, seed200) {
-		t.Error("invalid from58")
+	if fr != fr2 {
+		t.Error("invalid type")
 	}
-
-	s58 = HDSeed58(aklib.MainConfig, seed200, pwd1)
-	t.Log(s58)
-	if !strings.HasPrefix(s58, "AKPRIVM1") {
-		t.Error("invaild prefix")
+	if !bytes.Equal(rec, seed) {
+		t.Error("invalid from58")
 	}
 }

@@ -23,16 +23,16 @@ package address
 import (
 	"bytes"
 	"crypto/hmac"
+	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/binary"
 	"errors"
 
 	"github.com/AidosKuneen/aklib"
-
-	sha256 "github.com/AidosKuneen/sha256-simd"
 )
 
 const prefixPrivString = "AKPRI"
+const prefixNkeyString = "AKNKE"
 
 //HDseed returns HD seed.
 func HDseed(masterkey []byte, indices ...uint32) []byte {
@@ -60,7 +60,7 @@ func HDseed(masterkey []byte, indices ...uint32) []byte {
 }
 
 //HDSeed58 returns base58-encoded encrypted seed..
-func HDSeed58(conf *aklib.Config, seed, pwd []byte) string {
+func HDSeed58(conf *aklib.Config, seed, pwd []byte, isNode bool) string {
 	out := make([]byte, len(seed)+4)
 	copy(out, seed)
 	hash := sha256.Sum256(seed)
@@ -69,26 +69,27 @@ func HDSeed58(conf *aklib.Config, seed, pwd []byte) string {
 	copy(out[len(seed):], hash[0:4])
 	eseed := enc(out, pwd)
 
-	pref := conf.PrefixPriv
+	pref := prefixPriv(conf, isNode)
 	s := make([]byte, len(eseed)+len(pref))
 	copy(s, pref)
 	copy(s[len(pref):], eseed)
-	return prefixPrivString + Encode58(s)
+	if !isNode {
+		return prefixPrivString + Encode58(s)
+	}
+	return prefixNkeyString + Encode58(s)
 }
 
 //HDFrom58 returns seed bytes from base58-encoded seed and its password.
-func HDFrom58(seed58 string, pwd []byte, cfg *aklib.Config) ([]byte, error) {
-	if seed58[:len(prefixPrivString)] != prefixPrivString {
-		return nil, errors.New("invalid prefix string in seed")
+func HDFrom58(cfg *aklib.Config, seed58 string, pwd []byte) ([]byte, bool, error) {
+	if len(seed58) <= len(prefixPrivString) {
+		return nil, false, errors.New("invalid length")
 	}
+	prefixStr := seed58[:len(prefixPrivString)]
 	eseed, err := Decode58(seed58[len(prefixPrivString):])
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	pref := cfg.PrefixPriv
-	if !bytes.Equal(eseed[:len(pref)], pref) {
-		return nil, errors.New("invalid prefix bytes")
-	}
+	prefix := eseed[:len(cfg.PrefixNode)]
 	eseed = eseed[len(cfg.PrefixPriv):]
 	seed := enc(eseed, pwd)
 	encoded := seed[:len(seed)-4]
@@ -98,7 +99,13 @@ func HDFrom58(seed58 string, pwd []byte, cfg *aklib.Config) ([]byte, error) {
 	hash := sha256.Sum256(encoded)
 	hash = sha256.Sum256(hash[:])
 	if !bytes.Equal(hash[:4], cksum) {
-		return nil, errors.New("invalid password")
+		return nil, false, errors.New("invalid password")
 	}
-	return encoded, nil
+	if prefixStr == prefixNkeyString && bytes.Equal(prefix, cfg.PrefixNkey) {
+		return encoded, true, nil
+	}
+	if prefixStr == prefixPrivString && bytes.Equal(prefix, cfg.PrefixPriv) {
+		return encoded, false, nil
+	}
+	return nil, false, errors.New("invalid prefix")
 }
