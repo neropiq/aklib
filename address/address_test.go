@@ -141,7 +141,7 @@ func testAddress(t *testing.T, net *aklib.Config, adr string, isNode bool) {
 		t.Log(a.PrivateKey)
 		t.Error(err)
 	}
-	if err := Verify(sig, msg); err != nil {
+	if err = Verify(sig, msg); err != nil {
 		t.Error(err)
 	}
 
@@ -158,7 +158,7 @@ func testAddress(t *testing.T, net *aklib.Config, adr string, isNode bool) {
 	if err != nil {
 		t.Error(err)
 	}
-	if err := Verify(sig, msg); err != nil {
+	if err = Verify(sig, msg); err != nil {
 		t.Error(err)
 	}
 
@@ -167,7 +167,7 @@ func testAddress(t *testing.T, net *aklib.Config, adr string, isNode bool) {
 		t.Error(err)
 	}
 	var mc Address
-	if err := msgpack.Unmarshal(mb, &mc); err != nil {
+	if err = msgpack.Unmarshal(mb, &mc); err != nil {
 		t.Error(err)
 	}
 

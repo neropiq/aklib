@@ -72,8 +72,8 @@ func Build(conf *aklib.Config, w Wallet, tag []byte, outputs []*RawOutput) (*Tra
 	tr.Message = tag
 	var outtotal uint64
 	for _, o := range outputs {
-		if err := tr.AddOutput(conf, o.Address, o.Value); err != nil {
-			return nil, err
+		if err2 := tr.AddOutput(conf, o.Address, o.Value); err2 != nil {
+			return nil, err2
 		}
 		outtotal += o.Value
 	}

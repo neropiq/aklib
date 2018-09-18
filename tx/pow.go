@@ -30,7 +30,7 @@ import (
 
 //PoW does PoW.
 func (tx *Transaction) PoW() error {
-	return tx.PoWContext(nil)
+	return tx.PoWContext(context.Background())
 }
 
 //PoWContext does PoW with context..
@@ -45,12 +45,10 @@ func (tx *Transaction) PoWContext(ctx context.Context) error {
 				break
 			}
 		}
-		if ctx != nil {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			default:
-			}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
 		}
 	}
 	if tx.Gnonce == math.MaxUint32 {

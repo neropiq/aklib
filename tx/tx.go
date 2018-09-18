@@ -113,18 +113,14 @@ type MultiSigOut struct {
 //AddressByte returns a multisig address in binary form.
 func (mout *MultisigStruct) AddressByte(cfg *aklib.Config) address.Bytes {
 	adr := make([]address.Bytes, len(mout.Addresses))
-	for i, a := range mout.Addresses {
-		adr[i] = a
-	}
+	copy(adr, mout.Addresses)
 	return address.MultisigAddressByte(cfg, mout.M, adr...)
 }
 
 //Address returns a multisig address.
 func (mout *MultisigStruct) Address(cfg *aklib.Config) string {
 	adr := make([]address.Bytes, len(mout.Addresses))
-	for i, a := range mout.Addresses {
-		adr[i] = a
-	}
+	copy(adr, mout.Addresses)
 	return address.MultisigAddress(cfg, mout.M, adr...)
 }
 

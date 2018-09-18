@@ -264,12 +264,16 @@ func MultisigAddress(cfg *aklib.Config, m byte, address ...Bytes) string {
 //MultisigAddressByte returns an multisig address bytes.
 func MultisigAddressByte(cfg *aklib.Config, m byte, address ...Bytes) Bytes {
 	s := sha256.New()
-	s.Write([]byte{m})
+	if _, err := s.Write([]byte{m}); err != nil {
+		panic(err)
+	}
 	sort.Slice(address, func(i, j int) bool {
 		return bytes.Compare(address[i], address[j]) < 0
 	})
 	for _, a := range address {
-		s.Write(a)
+		if _, err := s.Write(a); err != nil {
+			panic(err)
+		}
 	}
 	return append(cfg.PrefixMsig, s.Sum(nil)...)
 }
