@@ -55,7 +55,7 @@ func hasUunused(adrs []*addresses) bool {
 	return false
 }
 
-func checkAdrsPrefix(cfg *aklib.Config, adr Address) bool {
+func checkAdrsPrefix(cfg *aklib.Config, adr address.Bytes) bool {
 	if len(adr) != 34 {
 		return false
 	}

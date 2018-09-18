@@ -523,7 +523,7 @@ func TestTX3(t *testing.T) {
 	tr.MultiSigOuts = append(tr.MultiSigOuts, &MultiSigOut{
 		MultisigStruct: MultisigStruct{
 			M:         2,
-			Addresses: []Address{zero},
+			Addresses: []address.Bytes{zero},
 		},
 		Value: 1,
 	})

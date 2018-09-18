@@ -103,7 +103,7 @@ func Inout2key(h Hash, typ InOutHashType, no byte) []byte {
 	return r[:]
 }
 
-//InputHashes returns inputs and outputs from tr.
+//InputHashes returns output info  refered by inputs of tr..
 func InputHashes(tr *Body) []*InoutHash {
 	prevs := make([]*InoutHash, 0, 1+
 		len(tr.Inputs)+len(tr.MultiSigIns))
@@ -115,14 +115,16 @@ func InputHashes(tr *Body) []*InoutHash {
 	}
 	for _, prev := range tr.Inputs {
 		prevs = append(prevs, &InoutHash{
-			Type: TypeIn,
-			Hash: prev.PreviousTX,
+			Type:  TypeIn,
+			Hash:  prev.PreviousTX,
+			Index: prev.Index,
 		})
 	}
 	for _, prev := range tr.MultiSigIns {
 		prevs = append(prevs, &InoutHash{
-			Type: TypeMulin,
-			Hash: prev.PreviousTX,
+			Type:  TypeMulin,
+			Hash:  prev.PreviousTX,
+			Index: prev.Index,
 		})
 	}
 	return prevs

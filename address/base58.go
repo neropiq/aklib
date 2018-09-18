@@ -72,6 +72,9 @@ func Decode58(value string) ([]byte, error) {
 	}
 
 	ecksum := pk.Bytes()
+	if len(ecksum) < 4 {
+		return nil, errors.New("invalid base58 code")
+	}
 	encoded := ecksum[:len(ecksum)-4]
 	cksum := ecksum[len(ecksum)-4:]
 

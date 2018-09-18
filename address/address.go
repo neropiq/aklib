@@ -26,6 +26,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"sort"
 
@@ -38,6 +39,9 @@ var (
 	prefixMsigString = "AKMSI"
 	prefixNodeString = "AKNOD"
 )
+
+//Bytes is a byte representaion of address.
+type Bytes []byte
 
 //Signature is a signature for hashed-address..
 type Signature struct {
@@ -126,13 +130,13 @@ func NewNode(config *aklib.Config, seed []byte) (*Address, error) {
 	}, nil
 }
 
-//PublicKey returns public key.
+//PublicKey returns public key of glyph..
 func (a *Address) PublicKey() []byte {
 	return a.PrivateKey.PK().Bytes()
 }
 
 //Address returns the address in binary..
-func (a *Address) Address(cfg *aklib.Config) []byte {
+func (a *Address) Address(cfg *aklib.Config) Bytes {
 	pub := a.PublicKey()
 	hpub := sha256.Sum256(pub)
 	return append(prefixAdrs(cfg, a.IsNode), hpub[:]...)
@@ -148,7 +152,7 @@ func (a *Address) Address58(cfg *aklib.Config) string {
 }
 
 //Address58 converts address bytes to encode58 format.
-func Address58(config *aklib.Config, p []byte) (string, error) {
+func Address58(config *aklib.Config, p Bytes) (string, error) {
 	var prefix string
 	switch {
 	case bytes.Equal(p[:2], config.PrefixAdrs):
@@ -163,13 +167,13 @@ func Address58(config *aklib.Config, p []byte) (string, error) {
 }
 
 //Address58ForAddress converts address bytes to encode58 format.
-func Address58ForAddress(p []byte) string {
+func Address58ForAddress(p Bytes) string {
 	return prefixAdrsString + Encode58(p)
 }
 
 //ParseAddress58 parses and checks base58 encoded address
 //and returns binary public key and its height.
-func ParseAddress58(cfg *aklib.Config, pub58 string) ([]byte, bool, error) {
+func ParseAddress58(cfg *aklib.Config, pub58 string) (Bytes, bool, error) {
 	if len(pub58) <= len(prefixAdrsString) {
 		return nil, false, errors.New("invalid length")
 	}
@@ -212,7 +216,7 @@ func ParseAddress58ForAddress(pub58 string) ([]byte, error) {
 }
 
 //Address returns address bytes from sig.
-func (sig *Signature) Address(cfg *aklib.Config, isNode bool) []byte {
+func (sig *Signature) Address(cfg *aklib.Config, isNode bool) Bytes {
 	hadr := sha256.Sum256(sig.PublicKey)
 	return append(prefixAdrs(cfg, isNode), hadr[:]...)
 }
@@ -252,13 +256,13 @@ func GenerateSeed32() []byte {
 }
 
 //MultisigAddress returns an multisig address.
-func MultisigAddress(cfg *aklib.Config, m byte, address ...[]byte) string {
+func MultisigAddress(cfg *aklib.Config, m byte, address ...Bytes) string {
 	bmul := MultisigAddressByte(cfg, m, address...)
 	return prefixMsigString + Encode58(bmul)
 }
 
 //MultisigAddressByte returns an multisig address bytes.
-func MultisigAddressByte(cfg *aklib.Config, m byte, address ...[]byte) []byte {
+func MultisigAddressByte(cfg *aklib.Config, m byte, address ...Bytes) Bytes {
 	s := sha256.New()
 	s.Write([]byte{m})
 	sort.Slice(address, func(i, j int) bool {
@@ -272,7 +276,7 @@ func MultisigAddressByte(cfg *aklib.Config, m byte, address ...[]byte) []byte {
 
 //ParseMultisigAddress parses and checks base58 encoded  multisig address
 //and returns binary address..
-func ParseMultisigAddress(cfg *aklib.Config, pub58 string) ([]byte, error) {
+func ParseMultisigAddress(cfg *aklib.Config, pub58 string) (Bytes, error) {
 	if len(pub58) <= len(prefixMsigString) {
 		return nil, errors.New("invalid length")
 	}
@@ -291,4 +295,25 @@ func ParseMultisigAddress(cfg *aklib.Config, pub58 string) ([]byte, error) {
 		return nil, errors.New("invalid prefix")
 	}
 	return pub, nil
+}
+
+//UnmarshalJSON sets *bs to a copy of data.
+func (bs *Bytes) UnmarshalJSON(b []byte) error {
+	h := ""
+	if err := json.Unmarshal(b, &h); err != nil {
+		return err
+	}
+	var err error
+	*bs, err = ParseAddress58ForAddress(h)
+	return err
+}
+
+//MarshalJSON returns m as the JSON encoding of m.
+func (bs *Bytes) MarshalJSON() ([]byte, error) {
+	adr := Address58ForAddress(*bs)
+	return json.Marshal(&adr)
+}
+
+func (bs Bytes) String() string {
+	return Address58ForAddress(bs)
 }

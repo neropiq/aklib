@@ -63,9 +63,6 @@ func (h Hash) String() string {
 //GetTXFunc gets tx.
 type GetTXFunc func(hash []byte) (*Body, error)
 
-//Address  is an address of glyph.
-type Address []byte
-
 //Types when hashing a tx.
 const (
 	//HashTypeExcludeOutputs is for excluding some outputs.
@@ -96,14 +93,14 @@ type Input struct {
 
 //Output is an output in transactions.
 type Output struct {
-	Address Address `json:"address"` //65 bytes
-	Value   uint64  `json:"value"`   //8 bytes
+	Address address.Bytes `json:"address"` //65 bytes
+	Value   uint64        `json:"value"`   //8 bytes
 }
 
 //MultisigStruct is a structure of  multisig.
 type MultisigStruct struct {
-	M         byte      `json:"n"`         //0 means normal payment, or M out of len(Address) multisig.
-	Addresses []Address `json:"addresses"` //< 65 * 32 bytes
+	M         byte            `json:"n"`         //0 means normal payment, or M out of len(Address) multisig.
+	Addresses []address.Bytes `json:"addresses"` //< 65 * 32 bytes
 
 }
 
@@ -114,8 +111,8 @@ type MultiSigOut struct {
 }
 
 //AddressByte returns a multisig address in binary form.
-func (mout *MultisigStruct) AddressByte(cfg *aklib.Config) []byte {
-	adr := make([][]byte, len(mout.Addresses))
+func (mout *MultisigStruct) AddressByte(cfg *aklib.Config) address.Bytes {
+	adr := make([]address.Bytes, len(mout.Addresses))
 	for i, a := range mout.Addresses {
 		adr[i] = a
 	}
@@ -124,7 +121,7 @@ func (mout *MultisigStruct) AddressByte(cfg *aklib.Config) []byte {
 
 //Address returns a multisig address.
 func (mout *MultisigStruct) Address(cfg *aklib.Config) string {
-	adr := make([][]byte, len(mout.Addresses))
+	adr := make([]address.Bytes, len(mout.Addresses))
 	for i, a := range mout.Addresses {
 		adr[i] = a
 	}
@@ -153,7 +150,7 @@ type Body struct {
 	LockTime     time.Time      `json:"lock_time"`               // 4 bytes
 	HashType     uint16         `json:"hash_type"`
 	TicketInput  Hash           `json:"ticket_input,omitempty"`
-	TicketOutput Address        `json:"ticket_output,omitempty"`
+	TicketOutput address.Bytes  `json:"ticket_output,omitempty"`
 	Scripts      [][]byte       `json:"-"` //not used
 	Reserved     []byte         `json:"-"` //not used
 }
@@ -258,7 +255,7 @@ func (body *Body) AddMultisigOut(cfg *aklib.Config, m byte, v uint64, adrs ...st
 	if len(adrs) < int(m) {
 		return errors.New("length of adrs is less than n")
 	}
-	as := make([]Address, len(adrs))
+	as := make([]address.Bytes, len(adrs))
 	for i, adr := range adrs {
 		pub, _, err := address.ParseAddress58(cfg, adr)
 		if err != nil {
@@ -392,25 +389,4 @@ func (h *Hash) UnmarshalJSON(b []byte) error {
 func (h *Hash) MarshalJSON() ([]byte, error) {
 	he := hex.EncodeToString(*h)
 	return json.Marshal(&he)
-}
-
-//UnmarshalJSON sets *bs to a copy of data.
-func (bs *Address) UnmarshalJSON(b []byte) error {
-	h := ""
-	if err := json.Unmarshal(b, &h); err != nil {
-		return err
-	}
-	var err error
-	*bs, err = address.ParseAddress58ForAddress(h)
-	return err
-}
-
-//MarshalJSON returns m as the JSON encoding of m.
-func (bs *Address) MarshalJSON() ([]byte, error) {
-	adr := address.Address58ForAddress(*bs)
-	return json.Marshal(&adr)
-}
-
-func (bs Address) String() string {
-	return address.Address58ForAddress(bs)
 }
