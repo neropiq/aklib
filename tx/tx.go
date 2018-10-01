@@ -31,6 +31,7 @@ import (
 	"github.com/AidosKuneen/aklib"
 	"github.com/AidosKuneen/aklib/address"
 	"github.com/AidosKuneen/aklib/arypack"
+	"github.com/AidosKuneen/consensus"
 )
 
 //max length of tx and fields in a transaction.
@@ -309,6 +310,11 @@ func (tr *Transaction) Size() int {
 func isValidHash(h []byte, e uint32) bool {
 	ea := binary.LittleEndian.Uint32(h[len(h)-4:])
 	return ea <= e
+}
+
+//ID is for Tx in consensus.
+func (tr *Transaction) ID() consensus.TxID {
+	return consensus.TxID(tr.Hash().Array())
 }
 
 //Hash reteurns hash of tx.

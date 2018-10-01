@@ -26,12 +26,12 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/json"
 	"errors"
 	"sort"
 
 	"github.com/AidosKuneen/aklib"
-	"github.com/AidosKuneen/glyph"
+	"github.com/AidosKuneen/bliss"
+	"golang.org/x/crypto/sha3"
 )
 
 var (
@@ -52,7 +52,7 @@ type Signature struct {
 //Address represents an address an assciated Merkle Tree in ADK.
 type Address struct {
 	IsNode     bool
-	PrivateKey *glyph.SigningKey
+	PrivateKey *bliss.PrivateKeyT
 }
 
 func enc(text []byte, pwd []byte) []byte {
@@ -94,11 +94,8 @@ func FromSeed(config *aklib.Config, seed []byte) (*Address, error) {
 	default:
 		return nil, errors.New("unknown seed")
 	}
-
-	sk, err := glyph.NewSigningKey(seed[2:])
-	if err != nil {
-		return nil, err
-	}
+	seed512 := sha3.Sum512(seed)
+	sk := bliss.NewPrivateKey(bliss.B4, seed512)
 
 	return &Address{
 		IsNode:     isNode,
@@ -111,7 +108,8 @@ func New(config *aklib.Config, seed []byte) (*Address, error) {
 	if len(seed) != 32 {
 		return nil, errors.New("invalid length of seed")
 	}
-	sk := glyph.NewSK(seed)
+	seed512 := sha3.Sum512(seed)
+	sk := bliss.NewPrivateKey(bliss.B4, seed512)
 	return &Address{
 		IsNode:     false,
 		PrivateKey: sk,
@@ -123,16 +121,17 @@ func NewNode(config *aklib.Config, seed []byte) (*Address, error) {
 	if len(seed) != 32 {
 		return nil, errors.New("invalid length of seed")
 	}
-	sk := glyph.NewSK(seed)
+	seed512 := sha3.Sum512(seed)
+	sk := bliss.NewPrivateKey(bliss.B4, seed512)
 	return &Address{
 		IsNode:     true,
 		PrivateKey: sk,
 	}, nil
 }
 
-//PublicKey returns public key of glyph..
+//PublicKey returns public key of bliss..
 func (a *Address) PublicKey() []byte {
-	return a.PrivateKey.PK().Bytes()
+	return a.PrivateKey.PublicKey().Bytes()
 }
 
 //Address returns the address in binary..
@@ -223,10 +222,7 @@ func (sig *Signature) Address(cfg *aklib.Config, isNode bool) Bytes {
 
 //Sign signs msg.
 func (a *Address) Sign(msg []byte) (*Signature, error) {
-	sig, err := a.PrivateKey.Sign(msg)
-	if err != nil {
-		return nil, err
-	}
+	sig := a.PrivateKey.Sign(msg)
 	return &Signature{
 		PublicKey: a.PublicKey(),
 		Sig:       sig.Bytes(),
@@ -234,16 +230,16 @@ func (a *Address) Sign(msg []byte) (*Signature, error) {
 }
 
 //Verify verifies msg from a node with node key..
-func Verify(bsig *Signature, msg []byte) error {
-	pk, err := glyph.NewPublickey(bsig.PublicKey)
+func (sig *Signature) Verify(msg []byte) error {
+	pk, err := bliss.NewPublicKey(sig.PublicKey)
 	if err != nil {
 		return err
 	}
-	sig, err := glyph.NewSignature(bsig.Sig)
+	gsig, err := bliss.NewSignature(sig.Sig)
 	if err != nil {
 		return err
 	}
-	return pk.Verify(sig, msg)
+	return pk.Verify(gsig, msg)
 }
 
 //GenerateSeed32 generates a new 32 bytes seed.
@@ -299,23 +295,6 @@ func ParseMultisigAddress(cfg *aklib.Config, pub58 string) (Bytes, error) {
 		return nil, errors.New("invalid prefix")
 	}
 	return pub, nil
-}
-
-//UnmarshalJSON sets *bs to a copy of data.
-func (bs *Bytes) UnmarshalJSON(b []byte) error {
-	h := ""
-	if err := json.Unmarshal(b, &h); err != nil {
-		return err
-	}
-	var err error
-	*bs, err = ParseAddress58ForAddress(h)
-	return err
-}
-
-//MarshalJSON returns m as the JSON encoding of m.
-func (bs *Bytes) MarshalJSON() ([]byte, error) {
-	adr := Address58ForAddress(*bs)
-	return json.Marshal(&adr)
 }
 
 func (bs Bytes) String() string {

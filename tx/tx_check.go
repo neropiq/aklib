@@ -261,7 +261,7 @@ func (tr *Transaction) Check(cfg *aklib.Config, typ Type) error {
 		return err
 	}
 	for n, sig := range tr.Signatures {
-		if err := address.Verify(sig, dat); err != nil {
+		if err := sig.Verify(dat); err != nil {
 			return fmt.Errorf("failed to verify a signature at %d: %v", n, err)
 		}
 		for nn := n + 1; nn < len(tr.Signatures); nn++ {

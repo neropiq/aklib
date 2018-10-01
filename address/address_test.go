@@ -24,12 +24,10 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"strings"
 	"testing"
 
 	"github.com/AidosKuneen/aklib"
-	"github.com/vmihailenco/msgpack"
 )
 
 func TestMultisigAddress(t *testing.T) {
@@ -141,41 +139,7 @@ func testAddress(t *testing.T, net *aklib.Config, adr string, isNode bool) {
 		t.Log(a.PrivateKey)
 		t.Error(err)
 	}
-	if err = Verify(sig, msg); err != nil {
-		t.Error(err)
-	}
-
-	b, err := json.Marshal(a)
-	if err != nil {
-		t.Error(err)
-	}
-	var c Address
-	err = json.Unmarshal(b, &c)
-	if err != nil {
-		t.Error(err)
-	}
-	sig, err = c.Sign(msg)
-	if err != nil {
-		t.Error(err)
-	}
-	if err = Verify(sig, msg); err != nil {
-		t.Error(err)
-	}
-
-	mb, err := msgpack.Marshal(a)
-	if err != nil {
-		t.Error(err)
-	}
-	var mc Address
-	if err = msgpack.Unmarshal(mb, &mc); err != nil {
-		t.Error(err)
-	}
-
-	sig, err = mc.Sign(msg)
-	if err != nil {
-		t.Error(err)
-	}
-	if err := Verify(sig, msg); err != nil {
+	if err = sig.Verify(msg); err != nil {
 		t.Error(err)
 	}
 }
@@ -199,7 +163,7 @@ func TestAddress2(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if err := Verify(sig, msg); err != nil {
+		if err := sig.Verify(msg); err != nil {
 			t.Error(err)
 		}
 	}
