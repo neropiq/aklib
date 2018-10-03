@@ -51,6 +51,7 @@ const (
 	HeaderWalletConfig
 
 	HeaderLedger
+	HeaderLastLedger
 )
 
 //Open open  or make a badger db.
