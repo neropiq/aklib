@@ -18,10 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package rpc
+package rpc_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -36,12 +37,15 @@ import (
 	"github.com/AidosKuneen/aklib/address"
 	"github.com/AidosKuneen/aklib/arypack"
 	"github.com/AidosKuneen/aklib/db"
+	rpcc "github.com/AidosKuneen/aklib/rpc"
 	"github.com/AidosKuneen/aklib/tx"
+	"github.com/AidosKuneen/aknode/akconsensus"
 	"github.com/AidosKuneen/aknode/imesh"
 	"github.com/AidosKuneen/aknode/imesh/leaves"
 	"github.com/AidosKuneen/aknode/node"
 	"github.com/AidosKuneen/aknode/rpc"
 	"github.com/AidosKuneen/aknode/setting"
+	"github.com/AidosKuneen/consensus"
 	"github.com/dgraph-io/badger"
 )
 
@@ -76,7 +80,7 @@ func setup(t *testing.T) {
 	s.Port = 9624
 	s.MyHostPort = ":9624"
 	seed := address.GenerateSeed32()
-	a, err2 = address.NewFromSeed(s.Config, seed, false)
+	a, err2 = address.New(s.Config, seed)
 	if err2 != nil {
 		t.Error(err2)
 	}
@@ -84,7 +88,7 @@ func setup(t *testing.T) {
 		a.Address58(s.Config): aklib.ADKSupply,
 	}
 	seed = address.GenerateSeed32()
-	b, err2 = address.NewFromSeed(s.Config, seed, false)
+	b, err2 = address.New(s.Config, seed)
 	if err2 != nil {
 		t.Error(err2)
 	}
@@ -111,7 +115,7 @@ func setup(t *testing.T) {
 	if err := rpc.Init(&s); err != nil {
 		t.Error(err)
 	}
-	if err := rpc.InitSecret(&s, []byte(walletpwd)); err != nil {
+	if err := rpc.New(&s, []byte(walletpwd)); err != nil {
 		t.Error(err)
 	}
 	l2 = rpc.Run(&s)
@@ -136,13 +140,31 @@ func teardown(t *testing.T) {
 	}
 }
 
+var (
+	ledger *consensus.Ledger
+)
+
 func confirmAll(t *testing.T, confirm bool) {
 	var txs []tx.Hash
+	ledger = &consensus.Ledger{
+		ParentID:  consensus.GenesisID,
+		Seq:       1,
+		CloseTime: time.Now(),
+	}
+	id := ledger.ID()
+	t.Log("ledger id", hex.EncodeToString(id[:]))
+	if err := akconsensus.PutLedger(&s, ledger); err != nil {
+		t.Fatal(err)
+	}
 	err := s.DB.Update(func(txn *badger.Txn) error {
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 		for it.Seek([]byte{byte(db.HeaderTxInfo)}); it.ValidForPrefix([]byte{byte(db.HeaderTxInfo)}); it.Next() {
-			dat, err2 := it.Item().Value()
+			var dat []byte
+			err2 := it.Item().Value(func(d []byte) {
+				dat = make([]byte, len(d))
+				copy(dat, d)
+			})
 			if err2 != nil {
 				return err2
 			}
@@ -150,11 +172,11 @@ func confirmAll(t *testing.T, confirm bool) {
 			if err := arypack.Unmarshal(dat, &ti); err != nil {
 				return err
 			}
-			if confirm {
-				ti.Status = imesh.StatusConfirmed
+			if confirm && ti.StatNo != imesh.StatusGenesis {
+				ti.StatNo = imesh.StatNo(id)
 			}
-			if !confirm {
-				ti.Status = imesh.StatusPending
+			if !confirm && ti.StatNo != imesh.StatusGenesis {
+				ti.StatNo = imesh.StatusPending
 			}
 			h := it.Item().Key()[1:]
 			if err := db.Put(txn, h, &ti, db.HeaderTxInfo); err != nil {
@@ -179,7 +201,7 @@ func TestRPCClient2(t *testing.T) {
 	setup(t)
 	defer teardown(t)
 	ipport := fmt.Sprintf("http://%s:%d", s.RPCBind, s.RPCPort)
-	cl := New(ipport, s.RPCUser, s.RPCPassword, nil)
+	cl := rpcc.New(ipport, s.RPCUser, s.RPCPassword, nil)
 
 	tr := tx.New(s.Config, genesis)
 	tr.AddInput(genesis, 0)
@@ -219,13 +241,13 @@ func TestRPCClient(t *testing.T) {
 	setup(t)
 	defer teardown(t)
 	ipport := fmt.Sprintf("http://%s:%d", s.RPCBind, s.RPCPort)
-	cl := New(ipport, "hoehoe", s.RPCPassword, nil)
+	cl := rpcc.New(ipport, "hoehoe", s.RPCPassword, nil)
 	_, err := cl.SetTxFee(0.01)
 	if err == nil {
 		t.Error("should be error")
 	}
 	time.Sleep(3 * time.Second)
-	cl = New(ipport, s.RPCUser, s.RPCPassword, nil)
+	cl = rpcc.New(ipport, s.RPCUser, s.RPCPassword, nil)
 	_, err = cl.SetTxFee(0.01)
 	if err != nil {
 		t.Error(err)
@@ -238,6 +260,7 @@ func TestRPCClient(t *testing.T) {
 	if !strings.HasPrefix(adr, "AKADR") {
 		t.Error("invalid address")
 	}
+	t.Log("wallet address", adr)
 
 	tr := tx.New(s.Config, genesis)
 	tr.AddInput(genesis, 0)
@@ -467,13 +490,10 @@ func TestRPCClient(t *testing.T) {
 	if len(stats) != 1 {
 		t.Error("invalid length")
 	}
-	if stats[0] != 100000 {
+	if !stats[0].IsAccepted() {
 		t.Error("invalid tx stat")
 	}
-	err = cl.WalletPassphrase(walletpwd, 1000)
-	if err != nil {
-		t.Error(err)
-	}
+
 	sfid, err := cl.SendFrom("", b.Address58(s.Config), 0.1)
 	if err != nil {
 		t.Fatal(err)
@@ -508,6 +528,7 @@ func TestRPCClient(t *testing.T) {
 		if !strings.HasPrefix(ac.Address, "AKADRS") {
 			t.Error("invalid account")
 		}
+		t.Log(ac.Account, ac.Address, ac.Amount)
 		if ac.Address == adr {
 			nadr++
 			if *ac.Account != "" {
@@ -533,7 +554,7 @@ func TestRPCClient(t *testing.T) {
 		t.Error("invalid addess")
 	}
 	if namt != 1 {
-		t.Error("invalid amount")
+		t.Error("invalid amount", namt)
 	}
 	ac, err := cl.ListAccounts()
 	if err != nil {
@@ -588,5 +609,14 @@ func TestRPCClient(t *testing.T) {
 
 	if err := cl.WalletLock(); err != nil {
 		t.Error(err)
+	}
+
+	lid := ledger.ID()
+	l, err := cl.GetLedger(hex.EncodeToString(lid[:]))
+	if err != nil {
+		t.Error(err)
+	}
+	if l.ID != hex.EncodeToString(lid[:]) || l.Seq != 1 {
+		t.Error("invalid ledger")
 	}
 }
