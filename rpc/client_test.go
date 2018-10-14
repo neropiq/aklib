@@ -66,7 +66,7 @@ func setup(t *testing.T) {
 	}
 	tdir = filepath.Join(tdir, "tmp.dat")
 	var err2 error
-	if err := os.RemoveAll("./test_db"); err != nil {
+	if err = os.RemoveAll("./test_db"); err != nil {
 		log.Println(err)
 	}
 	s.DB, err2 = db.Open("./test_db")
@@ -99,7 +99,7 @@ func setup(t *testing.T) {
 	s.RPCPort = s.Config.DefaultRPCPort
 	s.WalletNotify = "echo %s"
 	leaves.Init(&s)
-	if err := imesh.Init(&s); err != nil {
+	if err = imesh.Init(&s); err != nil {
 		t.Error(err)
 	}
 	gs := leaves.Get(1)
@@ -112,10 +112,10 @@ func setup(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if err := rpc.Init(&s); err != nil {
+	if err = rpc.Init(&s); err != nil {
 		t.Error(err)
 	}
-	if err := rpc.New(&s, []byte(walletpwd)); err != nil {
+	if err = rpc.New(&s, []byte(walletpwd)); err != nil {
 		t.Error(err)
 	}
 	l2 = rpc.Run(&s)
@@ -265,21 +265,21 @@ func TestRPCClient(t *testing.T) {
 
 	tr := tx.New(s.Config, genesis)
 	tr.AddInput(genesis, 0)
-	if err := tr.AddOutput(s.Config, adr, aklib.ADK); err != nil {
+	if err = tr.AddOutput(s.Config, adr, aklib.ADK); err != nil {
 		t.Error(err)
 	}
-	if err := tr.AddOutput(s.Config, a.Address58(s.Config), aklib.ADKSupply-aklib.ADK); err != nil {
+	if err = tr.AddOutput(s.Config, a.Address58(s.Config), aklib.ADKSupply-aklib.ADK); err != nil {
 		t.Error(err)
 	}
-	if err := tr.Sign(a); err != nil {
+	if err = tr.Sign(a); err != nil {
 		t.Error(err)
 	}
-	if err := tr.PoW(); err != nil {
+	if err = tr.PoW(); err != nil {
 		t.Error(err)
 	}
-	id, err := cl.SendRawTX(tr, tx.TypeNormal)
-	if err != nil {
-		t.Error(err)
+	id, err2 := cl.SendRawTX(tr, tx.TypeNormal)
+	if err2 != nil {
+		t.Error(err2)
 	}
 	if id != tr.Hash().String() {
 		t.Error("invalid txid")
@@ -287,9 +287,9 @@ func TestRPCClient(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	confirmAll(t, true)
 	time.Sleep(2 * time.Second)
-	bal, err := cl.GetBalance("")
-	if err != nil {
-		t.Error(err)
+	bal, err2 := cl.GetBalance("")
+	if err2 != nil {
+		t.Error(err2)
 	}
 	if bal != 1 {
 		t.Fatal("invlid balance", bal)
@@ -312,9 +312,9 @@ func TestRPCClient(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	confirmAll(t, true)
 	time.Sleep(2 * time.Second)
-	inf, err := cl.ValidateAddress(adr)
-	if err != nil {
-		t.Error(err)
+	inf, err2 := cl.ValidateAddress(adr)
+	if err2 != nil {
+		t.Error(err2)
 	}
 	if *inf.Account != "" {
 		t.Error("invalid account")
@@ -335,9 +335,9 @@ func TestRPCClient(t *testing.T) {
 	if bal != 1-0.1 {
 		t.Fatal("invlid balance", bal)
 	}
-	gettx, err := cl.GetTransaction(id)
-	if err != nil {
-		t.Error(err)
+	gettx, err2 := cl.GetTransaction(id)
+	if err2 != nil {
+		t.Error(err2)
 	}
 	if gettx.Amount != -0.1 {
 		t.Error("invalid amount")
@@ -375,10 +375,10 @@ func TestRPCClient(t *testing.T) {
 	if len(bs) != 0 {
 		t.Error("invalid ListBanned")
 	}
-	if err := cl.DumpWallet(tdir); err != nil {
+	if err = cl.DumpWallet(tdir); err != nil {
 		t.Error(err)
 	}
-	if err := cl.ImportWallet(tdir); err != nil {
+	if err = cl.ImportWallet(tdir); err != nil {
 		t.Error(err)
 	}
 	ni, err := cl.GetNodeinfo()
@@ -435,7 +435,7 @@ func TestRPCClient(t *testing.T) {
 	mfee.AddInput(tr.Hash(), 1)
 	mfee.AddOutput(s.Config, a.Address58(s.Config), aklib.ADKSupply-100000000-10)
 	mfee.AddOutput(s.Config, "", 10)
-	if err := mfee.Sign(a); err != nil {
+	if err = mfee.Sign(a); err != nil {
 		t.Error(err)
 	}
 	_, err = cl.SendRawTX(mfee, tx.TypeRewardFee)
@@ -465,10 +465,10 @@ func TestRPCClient(t *testing.T) {
 
 	mtic := tx.NewMinableTicket(s.Config, ti.Hash(), genesis)
 	mtic.AddInput(genesis, 0)
-	if err := mtic.AddOutput(s.Config, a.Address58(s.Config), aklib.ADKSupply); err != nil {
+	if err = mtic.AddOutput(s.Config, a.Address58(s.Config), aklib.ADKSupply); err != nil {
 		t.Error(err)
 	}
-	if err := mtic.Sign(a); err != nil {
+	if err = mtic.Sign(a); err != nil {
 		t.Error(err)
 	}
 	_, err = cl.SendRawTX(mtic, tx.TypeRewardTicket)
@@ -608,7 +608,7 @@ func TestRPCClient(t *testing.T) {
 		t.Error("invalid category")
 	}
 
-	if err := cl.WalletLock(); err != nil {
+	if err = cl.WalletLock(); err != nil {
 		t.Error(err)
 	}
 

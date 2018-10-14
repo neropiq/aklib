@@ -92,7 +92,11 @@ func (client *RPC) do(cmd interface{}, out interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err = resp.Body.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	bs, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
