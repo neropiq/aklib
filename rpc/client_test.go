@@ -161,9 +161,10 @@ func confirmAll(t *testing.T, confirm bool) {
 		defer it.Close()
 		for it.Seek([]byte{byte(db.HeaderTxInfo)}); it.ValidForPrefix([]byte{byte(db.HeaderTxInfo)}); it.Next() {
 			var dat []byte
-			err2 := it.Item().Value(func(d []byte) {
+			err2 := it.Item().Value(func(d []byte) error {
 				dat = make([]byte, len(d))
 				copy(dat, d)
+				return nil
 			})
 			if err2 != nil {
 				return err2
