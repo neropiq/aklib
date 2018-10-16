@@ -22,6 +22,7 @@ package rpc_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -57,7 +58,7 @@ var tdir string
 var walletpwd = "hoe"
 var cnotify chan []tx.Hash
 
-func setup(t *testing.T) {
+func setup(t *testing.T) context.CancelFunc {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	var err error
 	tdir, err = ioutil.TempDir("", "gotest")
@@ -107,8 +108,8 @@ func setup(t *testing.T) {
 		t.Error("invalid genesis")
 	}
 	genesis = gs[0]
-
-	l, err = node.Start(&s, true)
+	ctx, cancel := context.WithCancel(context.Background())
+	l, err = node.Start(ctx, &s, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -118,11 +119,12 @@ func setup(t *testing.T) {
 	if err = rpc.New(&s, []byte(walletpwd)); err != nil {
 		t.Error(err)
 	}
-	l2 = rpc.Run(&s)
-	rpc.GoNotify(&s, node.RegisterTxNotifier,
+	l2 = rpc.Run(ctx, &s)
+	rpc.GoNotify(ctx, &s, node.RegisterTxNotifier,
 		func(ch chan []tx.Hash) {
 			cnotify = ch
 		})
+	return cancel
 }
 
 func teardown(t *testing.T) {
@@ -199,8 +201,10 @@ func confirmAll(t *testing.T, confirm bool) {
 	}
 }
 func TestRPCClient2(t *testing.T) {
-	setup(t)
+	cancel := setup(t)
 	defer teardown(t)
+	defer cancel()
+
 	ipport := fmt.Sprintf("http://%s:%d", s.RPCBind, s.RPCPort)
 	cl := rpcc.New(ipport, s.RPCUser, s.RPCPassword, nil)
 
@@ -239,8 +243,10 @@ func TestRPCClient2(t *testing.T) {
 	}
 }
 func TestRPCClient(t *testing.T) {
-	setup(t)
+	cancel := setup(t)
 	defer teardown(t)
+	defer cancel()
+
 	ipport := fmt.Sprintf("http://%s:%d", s.RPCBind, s.RPCPort)
 	cl := rpcc.New(ipport, "hoehoe", s.RPCPassword, nil)
 	_, err := cl.SetTxFee(0.01)

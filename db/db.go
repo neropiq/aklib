@@ -21,6 +21,7 @@
 package db
 
 import (
+	"context"
 	"os"
 	"time"
 
@@ -65,21 +66,26 @@ func Open(dir string) (*badger.DB, error) {
 	opts.SyncWrites = false
 	opts.Dir = dir
 	opts.ValueDir = dir
-	db, err := badger.Open(opts)
-	if err != nil {
-		return nil, err
-	}
+	return badger.Open(opts)
+}
+
+//GoGC runs gc for badger DB.
+func GoGC(ctx context.Context, db *badger.DB) {
 	go func() {
-		ticker := time.NewTicker(5 * time.Minute)
-		defer ticker.Stop()
-		for range ticker.C {
-		again:
-			if err := db.RunValueLogGC(0.7); err == nil {
-				goto again
+		ctx2, cancel2 := context.WithCancel(ctx)
+		defer cancel2()
+		for {
+			select {
+			case <-ctx2.Done():
+				return
+			case <-time.After(5 * time.Minute):
+			again:
+				if err := db.RunValueLogGC(0.7); err == nil {
+					goto again
+				}
 			}
 		}
 	}()
-	return db, nil
 }
 
 //Copy copies db to toDir.

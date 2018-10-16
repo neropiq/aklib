@@ -22,12 +22,11 @@ package address
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
-
-	sha256 "github.com/AidosKuneen/sha256-simd"
 )
 
 const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
