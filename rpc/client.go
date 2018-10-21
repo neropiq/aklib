@@ -22,6 +22,7 @@ package rpc
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -273,12 +274,23 @@ func (client *RPC) GetLeaves() ([]string, error) {
 }
 
 //GetLastHistory sends a getlasthistory RPC.
-func (client *RPC) GetLastHistory(adr string) ([]*InoutHash, error) {
+func (client *RPC) GetLastHistory(adr string) ([]*tx.InoutHash, error) {
 	var out struct {
 		Result []*InoutHash `json:"result"`
 	}
 	err := client.request("getlasthistory", []interface{}{adr}, &out)
-	return out.Result, err
+	r := make([]*tx.InoutHash, len(out.Result))
+	for i, or := range out.Result {
+		r[i] = &tx.InoutHash{
+			Type:  or.Type,
+			Index: or.Index,
+		}
+		r[i].Hash, err = hex.DecodeString(or.Hash)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return r, err
 }
 
 //GetRawTx sends a getrawtx RPC.

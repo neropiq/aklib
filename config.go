@@ -20,6 +20,10 @@
 
 package aklib
 
+import (
+	"github.com/dgraph-io/badger"
+)
+
 const (
 	//ADK is for converting 1 ADK to unit in transactions.
 	ADK = 100000000
@@ -31,6 +35,12 @@ const (
 type SRV struct {
 	Service string
 	Name    string
+}
+
+//DBConfig is a set of config for db.
+type DBConfig struct {
+	DB     *badger.DB `json:"-"`
+	Config *Config    `json:"-"`
 }
 
 //Config is settings for various parameters.

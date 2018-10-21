@@ -59,11 +59,12 @@ type Wallet interface {
 //Wallet2 is a wallet interface for getting a ticket out tx.
 type Wallet2 interface {
 	Wallet
-	GetTicketout() (Hash, error)
+	GetTicketout() (Hash, *address.Address, error)
 }
 
 //Build builds a tx for sending coins.
-func Build(conf *aklib.Config, w Wallet, tag []byte, outputs []*RawOutput) (*Transaction, error) {
+func Build(conf *aklib.Config, w Wallet, tag []byte, outputs []*RawOutput,
+	beforeSignFunc func(*Transaction) error) (*Transaction, error) {
 	ls, err := w.GetLeaves()
 	if err != nil {
 		return nil, err
@@ -72,9 +73,6 @@ func Build(conf *aklib.Config, w Wallet, tag []byte, outputs []*RawOutput) (*Tra
 	tr.Message = tag
 	var outtotal uint64
 	for _, o := range outputs {
-		if err2 := tr.AddOutput(conf, o.Address, o.Value); err2 != nil {
-			return nil, err2
-		}
 		outtotal += o.Value
 	}
 	utxos, err := w.GetUTXO(outtotal)
@@ -110,6 +108,17 @@ func Build(conf *aklib.Config, w Wallet, tag []byte, outputs []*RawOutput) (*Tra
 			return nil, err
 		}
 	}
+	//don't move it. ticket fee must be at the last of outputs.
+	for _, o := range outputs {
+		if err2 := tr.AddOutput(conf, o.Address, o.Value); err2 != nil {
+			return nil, err2
+		}
+	}
+	if beforeSignFunc != nil {
+		if err := beforeSignFunc(tr); err != nil {
+			return nil, err
+		}
+	}
 	for _, a := range adrs {
 		if err := a.Sign(tr); err != nil {
 			return nil, err
@@ -129,6 +138,7 @@ type BuildParam struct {
 
 //Build2 builds a tx for sending coins with fee or ticket..
 func Build2(conf *aklib.Config, w Wallet2, p *BuildParam) (*Transaction, error) {
+	var err error
 	if p.PoWType == TypeRewardFee {
 		if p.Fee == 0 {
 			return nil, errors.New("fee is zero")
@@ -138,21 +148,30 @@ func Build2(conf *aklib.Config, w Wallet2, p *BuildParam) (*Transaction, error) 
 			Value:   p.Fee,
 		})
 	}
-	tr, err := Build(conf, w, []byte(p.Comment), p.Dest)
+	var ticketadr *address.Address
+	f := func(tr *Transaction) error {
+		switch p.PoWType {
+		case TypeRewardFee:
+			tr.Body.HashType = HashTypeExcludeOutputs | 0x1
+		case TypeRewardTicket:
+			tr.Body.HashType = HashTypeExcludeTicketOut
+			var h Hash
+			h, ticketadr, err = w.GetTicketout()
+			if err != nil {
+				return err
+			}
+			tr.TicketInput = h
+		}
+		return nil
+	}
+	tr, err := Build(conf, w, []byte(p.Comment), p.Dest, f)
 	if err != nil {
 		return nil, err
 	}
-	switch p.PoWType {
-	case TypeRewardFee:
-		tr.Body.HashType = HashTypeExcludeOutputs | 0x1
-	case TypeRewardTicket:
-		tr.Body.HashType = HashTypeExcludeTicketOut
-		h, err := w.GetTicketout()
-		if err != nil {
+	if p.PoWType == TypeRewardTicket {
+		if err := tr.Sign(ticketadr); err != nil {
 			return nil, err
 		}
-		tr.TicketInput = h
-	case TypeNormal:
 	}
 	return tr, nil
 }

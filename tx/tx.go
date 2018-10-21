@@ -21,6 +21,7 @@
 package tx
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
@@ -275,6 +276,11 @@ func (body *Body) AddMultisigOut(cfg *aklib.Config, m byte, v uint64, adrs ...st
 
 //Sign sings the tx.
 func (tr *Transaction) Sign(a *address.Address) error {
+	for _, sig := range tr.Signatures {
+		if bytes.Equal(sig.PublicKey, a.PublicKey()) {
+			return nil
+		}
+	}
 	dat, err := tr.bytesForSign()
 	if err != nil {
 		return err

@@ -426,7 +426,7 @@ func TestRPCClient(t *testing.T) {
 	if hs[0].Index != 0 {
 		t.Error("invalid index")
 	}
-	if hs[0].Hash != id {
+	if hs[0].Hash.String() != id {
 		t.Error("invalid hash", hs[0].Hash)
 	}
 	tr2, err := cl.GetRawTx(id)

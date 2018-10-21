@@ -54,7 +54,7 @@ func EncryptSeed(pt []byte, pwd []byte) []byte {
 //DecryptSeed decrypts by AES256  with MAC.
 func DecryptSeed(ct []byte, pwd []byte) ([]byte, error) {
 	if pwd == nil {
-		return nil, errors.New("call walletpassphrase first")
+		return nil, errors.New("password is nil")
 	}
 	pwd256 := sha256.Sum256(pwd)
 	hkey := sha256.Sum256(pwd256[:])
