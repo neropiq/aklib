@@ -607,7 +607,7 @@ func TestRPCClient(t *testing.T) {
 	if trs[0].Txid != sfid {
 		t.Error("invalid txid", trs[0].Txid)
 	}
-	if trs[0].Vout != 1 {
+	if trs[0].Vout != 0 {
 		t.Error("invalid vout", trs[0].Vout)
 	}
 	if trs[0].Category != "receive" {
