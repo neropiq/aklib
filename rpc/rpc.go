@@ -61,18 +61,18 @@ type Bans struct {
 
 //NodeInfo is a struct for getnodeinfo RPC.
 type NodeInfo struct {
-	Version         string  `json:"version"`
-	ProtocolVersion int     `json:"protocolversion"`
-	WalletVersion   int     `json:"walletversion"`
-	Balance         *uint64 `json:"balance,omitempty"`
-	Connections     int     `json:"connections"`
-	Proxy           string  `json:"proxy"`
-	Testnet         byte    `json:"testnet"`
-	KeyPoolSize     int     `json:"keypoolsize"`
-	Leaves          int     `json:"leaves"`
-	Time            int64   `json:"time"`
-	TxNo            uint64  `json:"txno"`
-	LatestLedger    string  `json:"latest_ledger"`
+	Version         string `json:"version"`
+	ProtocolVersion int    `json:"protocolversion"`
+	WalletVersion   int    `json:"walletversion"`
+	Connections     int    `json:"connections"`
+	Proxy           string `json:"proxy"`
+	Testnet         byte   `json:"testnet"`
+	KeyPoolSize     int    `json:"keypoolsize"`
+	Leaves          int    `json:"leaves"`
+	Time            int64  `json:"time"`
+	TxNo            uint64 `json:"txno"`
+	LatestLedger    string `json:"latest_ledger"`
+	LatestLedgerNo  int    `json:"latest_ledger_no"`
 }
 
 //InoutHash is a struct for getlasthistory RPC.

@@ -23,8 +23,8 @@ package tx
 import (
 	"context"
 	"errors"
-	"math"
 
+	"github.com/AidosKuneen/aklib/rand"
 	"github.com/AidosKuneen/cuckoo"
 )
 
@@ -33,10 +33,14 @@ func (tx *Transaction) PoW() error {
 	return tx.PoWContext(context.Background())
 }
 
+//ErrCanceled means the PoW was canceled by context.
+var ErrCanceled = errors.New("PoW was canceled")
+
 //PoWContext does PoW with context..
 func (tx *Transaction) PoWContext(ctx context.Context) error {
 	cu := cuckoo.NewCuckoo()
-	for tx.Gnonce = 0; tx.Gnonce < math.MaxUint32; tx.Gnonce++ {
+	start := rand.R.Uint32()
+	for tx.Gnonce = start; tx.Gnonce != start-1; tx.Gnonce++ {
 		hs := tx.hashForPoW()
 		nonces, found := cu.PoW(hs)
 		if found {
@@ -47,11 +51,11 @@ func (tx *Transaction) PoWContext(ctx context.Context) error {
 		}
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return ErrCanceled
 		default:
 		}
 	}
-	if tx.Gnonce == math.MaxUint32 {
+	if tx.Gnonce == start-1 {
 		return errors.New("failed to PoW")
 	}
 	return nil

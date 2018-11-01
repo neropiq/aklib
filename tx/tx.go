@@ -22,6 +22,7 @@ package tx
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
@@ -101,7 +102,7 @@ type Output struct {
 
 //MultisigStruct is a structure of  multisig.
 type MultisigStruct struct {
-	M         byte            `json:"n"`         //0 means normal payment, or M out of len(Address) multisig.
+	M         byte            `json:"m"`         //0 means normal payment, or M out of len(Address) multisig.
 	Addresses []address.Bytes `json:"addresses"` //< 65 * 32 bytes
 
 }
@@ -175,7 +176,7 @@ func New(s *aklib.Config, previous ...Hash) *Transaction {
 }
 
 //IssueTicket make and does PoW for a  transaction for issuing tx.
-func IssueTicket(s *aklib.Config, ticketOut []byte, previous ...Hash) (*Transaction, error) {
+func IssueTicket(ctx context.Context, s *aklib.Config, ticketOut []byte, previous ...Hash) (*Transaction, error) {
 	tr := &Transaction{
 		Body: &Body{
 			Type:         typeNormal,
@@ -185,7 +186,7 @@ func IssueTicket(s *aklib.Config, ticketOut []byte, previous ...Hash) (*Transact
 			Parent:       previous,
 		},
 	}
-	return tr, tr.PoW()
+	return tr, tr.PoWContext(ctx)
 }
 
 //NewMinableFee returns a minable transaction by fee..

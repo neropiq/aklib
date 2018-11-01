@@ -22,6 +22,7 @@ package tx
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -284,7 +285,7 @@ func TestTX(t *testing.T) {
 	}
 }
 func TestTicket(t *testing.T) {
-	ticket, err := IssueTicket(aklib.DebugConfig, a[0].Address(aklib.DebugConfig), zero)
+	ticket, err := IssueTicket(context.Background(), aklib.DebugConfig, a[0].Address(aklib.DebugConfig), zero)
 	if err != nil {
 		t.Error(err)
 	}
