@@ -391,9 +391,6 @@ func TestRPCClient(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if *ni.Balance != uint64((1-0.1)*float64(aklib.ADK)) {
-		t.Error("invalid balance", *ni.Balance)
-	}
 	if ni.Connections != 0 {
 		t.Error("invalid connection")
 	}
@@ -457,7 +454,7 @@ func TestRPCClient(t *testing.T) {
 		t.Error("invalid feetx")
 	}
 
-	ti, err := tx.IssueTicket(s.Config, a.Address(s.Config), genesis)
+	ti, err := tx.IssueTicket(context.Background(), s.Config, a.Address(s.Config), genesis)
 	if err != nil {
 		t.Error(err)
 	}
