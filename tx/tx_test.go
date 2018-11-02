@@ -441,7 +441,9 @@ func TestTX2(t *testing.T) {
 func TestTicket2(t *testing.T) {
 	tx2 := NewMinableTicket(aklib.DebugConfig, one, one)
 	tx2.AddInput(one, 0)
-	tx2.AddOutput(aklib.DebugConfig, a[0].Address58(aklib.DebugConfig), 543)
+	if err := tx2.AddOutput(aklib.DebugConfig, a[0].Address58(aklib.DebugConfig), 543); err != nil {
+		t.Error(err)
+	}
 	seed1 := address.GenerateSeed32()
 	seed2 := address.GenerateSeed32()
 	a1, err := address.New(aklib.DebugConfig, seed1)

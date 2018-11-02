@@ -99,7 +99,9 @@ func setup(t *testing.T) context.CancelFunc {
 	s.RPCBind = "127.0.0.1"
 	s.RPCPort = s.Config.DefaultRPCPort
 	s.WalletNotify = "echo %s"
-	leaves.Init(&s)
+	if err := leaves.Init(&s); err != nil {
+		t.Error(err)
+	}
 	if err = imesh.Init(&s); err != nil {
 		t.Error(err)
 	}
@@ -436,8 +438,12 @@ func TestRPCClient(t *testing.T) {
 
 	mfee := tx.NewMinableFee(s.Config, genesis)
 	mfee.AddInput(tr.Hash(), 1)
-	mfee.AddOutput(s.Config, a.Address58(s.Config), aklib.ADKSupply-100000000-10)
-	mfee.AddOutput(s.Config, "", 10)
+	if err := mfee.AddOutput(s.Config, a.Address58(s.Config), aklib.ADKSupply-100000000-10); err != nil {
+		t.Error(err)
+	}
+	if err := mfee.AddOutput(s.Config, "", 10); err != nil {
+		t.Error(err)
+	}
 	if err = mfee.Sign(a); err != nil {
 		t.Error(err)
 	}
