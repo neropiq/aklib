@@ -82,6 +82,18 @@ func TestAddressHDSeed(t *testing.T) {
 	testHDSeed(t, aklib.DebugConfig, "AKPRIVD", false)
 }
 
+func TestAddressSeed(t *testing.T) {
+	master := GenerateSeed32()
+	seed := HDseed(master, 0, 0)
+	s58 := HDSeed58(aklib.DebugConfig, seed, []byte(""), false)
+	a, err := New(aklib.DebugConfig, seed)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log("seed", s58)
+	t.Log("address", a.Address58(aklib.DebugConfig))
+}
+
 func testHDSeed(t *testing.T, net *aklib.Config, adr string, fr bool) {
 	seed := GenerateSeed32()
 	pwd1 := []byte("qewrty123")

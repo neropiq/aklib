@@ -67,7 +67,6 @@ type NodeInfo struct {
 	Connections     int    `json:"connections"`
 	Proxy           string `json:"proxy"`
 	Testnet         byte   `json:"testnet"`
-	KeyPoolSize     int    `json:"keypoolsize"`
 	Leaves          int    `json:"leaves"`
 	Time            int64  `json:"time"`
 	TxNo            uint64 `json:"txno"`

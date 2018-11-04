@@ -133,7 +133,7 @@ var (
 		},
 		MessageMagic: 0xD9CBA322,
 		Genesis: map[string]uint64{
-			"": ADKSupply, //
+			"AKADRSD4HSext48uT6cibWYoQQj6pvtVgLkQo61wbiToSKfeSi2inrMUU": ADKSupply,
 		},
 	}
 )
